@@ -1,0 +1,15 @@
+version: '3'
+services:
+  redis:
+    image: "redis:latest"
+    ports:
+      - "127.0.0.1:6379:6379"
+  postgres:
+    image: "postgres:latest"
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: "docker"
+      POSTGRES_DB: "dnsfookup"
+    ports:
+      - "127.0.0.1:5432:5432"
+    

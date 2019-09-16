@@ -1,0 +1,11 @@
+IPy
+redis
+uuid
+flask_jwt_extended
+flask_restful
+datetime
+passlib
+sqlalchemy
+flask
+psycopg2
+flask_cors
