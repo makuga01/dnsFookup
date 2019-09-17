@@ -6,16 +6,22 @@ from uuid import uuid4
 from redis import StrictRedis
 from IPy import IP
 
+"""
+*** CONFIG ***
+"""
 DOMAIN = "gel0.space"
 
 redis_config = {
   'host': '127.0.0.1',
   'port': 6379,
+  'password': 'CHANGETHISPW'
 }
 REDIS_EXP = 60*60 #seconds
 redis = StrictRedis(socket_connect_timeout=3,**redis_config)
 
-
+"""
+*** CONFIG ***
+"""
 
 """
 For easier manipulation with redis

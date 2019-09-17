@@ -4,9 +4,13 @@ from app import db
 from datetime import datetime
 
 """
-DNS SERVER CONFIG
+*** CONFIG ***
 """
 
+"""
+UDP port DNS server will listen on, for testing purposes it's on 5053,
+if you want to deploy the app on server change this to 53
+"""
 port = 5053
 ip = "127.0.0.1"
 
@@ -18,6 +22,20 @@ Failure ip - If server runs over some error
 it tries to resolve to this ip (If that is possible)
 """
 FAILURE_IP = '0.0.0.0'
+
+"""
+Redis configuration
+REDIS_EXP - expiration of redis key
+"""
+
+redis_config = {"host": "127.0.0.1", "port": 6379, 'password': 'CHANGETHISPW'}
+REDIS_EXP = 60 * 60  # 1 hour
+redis = StrictRedis(socket_connect_timeout=3, **redis_config)
+
+
+"""
+*** CONFIG ***
+"""
 
 """
 SQLAlchemy models for easier access to database
@@ -57,15 +75,6 @@ class LogModel(db.Model):
         db.session.add(self)
         db.session.commit()
 
-
-"""
-Redis configuration
-REDIS_EXP - expiration of redis key
-"""
-
-redis_config = {"host": "127.0.0.1", "port": 6379}
-REDIS_EXP = 60 * 60  # seconds
-redis = StrictRedis(socket_connect_timeout=3, **redis_config)
 
 """
 Lambda functions used for easier manipulation with redis

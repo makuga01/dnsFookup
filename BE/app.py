@@ -9,9 +9,11 @@ app = Flask(__name__)
 api = Api(app)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
+"""
+*** CONFIG ***
+"""
 
-
-DB_URL = 'postgresql+psycopg2://postgres:docker@localhost/dnsfookup'
+DB_URL = 'postgresql+psycopg2://postgres:CHANGETHISTOO@localhost/dnsfookup'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # silence the deprecation warning
@@ -29,6 +31,10 @@ jwt = JWTManager(app)
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access']#, 'refresh]
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 60*60*6 # 6 hours
+
+"""
+*** CONFIG ***
+"""
 
 @jwt.token_in_blacklist_loader
 def check_if_token_in_blacklist(decrypted_token):
