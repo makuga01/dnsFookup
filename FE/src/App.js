@@ -21,6 +21,7 @@ class App extends Component {
     logged: false,
     name: ""
   };
+
   getUser = () => {
     var bearer = "Bearer " + localStorage.getItem("access_token");
     //console.log(bearer);
@@ -37,17 +38,22 @@ class App extends Component {
       .then(res => res.json())
       .then(data => {
         if (
-          (data.msg !== "Token has expired") &
-          (data.msg !== "Not enough segments") &
-          (data.msg !== "Signature verification failed")
+          (data.name != null)
         ) {
           this.setUser(data);
-        } else {
+          console.log('LoggenIn ok');
+        } else if (window.location.pathname != "/") {
           this.handleLogout();
+          console.log('HandleLogout');
+
         }
       })
       .catch(err => {
-        console.log(err);
+        if (window.location.pathname != "/") {
+          this.handleLogout();
+          console.log('HandleLogout');
+        }
+
       });
   };
 
@@ -58,6 +64,7 @@ class App extends Component {
     });
     console.log(this.state);
   };
+
   unsetUser = () => {
     this.setState({
       logged: false,
@@ -65,13 +72,14 @@ class App extends Component {
     });
     localStorage.removeItem("access_token");
     console.log("user unset");
+    window.location = "/"
   };
+
   componentDidMount() {
-    if (localStorage.getItem("access_token") != null) {
-      this.getUser();
-      this.interval = setInterval(this.getUser(), 10000);
-    }
+
+    this.getUser()
   }
+
   isLogged = () => {
     return this.state.logged;
   };
@@ -88,18 +96,15 @@ class App extends Component {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.error != true) {
-          localStorage.removeItem("access_token");
-          this.setState(() => ({
-            redirectHome: true
-          }));
+        if (data.error === true) {
+          console.log("Logout error");
+        }
+        else {
           this.unsetUser();
-        } else {
-          console.log(data);
         }
       })
       .catch(err => {
-        console.log(err);
+        this.unsetUser();
       });
   };
 

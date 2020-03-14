@@ -11,6 +11,7 @@ import {
   Button
 } from "semantic-ui-react";
 import { Link } from "react-router-dom";
+import {CopyToClipboard} from 'react-copy-to-clipboard';
 
 class MyBins extends Component {
   state = {
@@ -82,6 +83,38 @@ class MyBins extends Component {
       });
   };
 
+  deleteUUID = () => {
+    var bearer = "Bearer " + localStorage.getItem("access_token");
+    event.preventDefault();
+    var uuid = this.state.selected
+    var data = new FormData();
+    data.append("uuid", uuid);
+    var obj = {
+      method: "POST",
+      headers: new Headers({
+        Accept: "aplication/json",
+        Authorization: bearer,
+        //   "Access-Control-Allow-Origin": "*",
+        "Access-Control-Request-Headers": "Authorization, Accept"
+      }),
+      body: data
+    };
+    fetch("http://localhost:5000/api/fookup/delete", obj)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success === true) {
+          this.setState({
+            selected: ""
+          });
+          this.getBins();
+
+        }
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  };
+
   componentDidMount() {
     this.getBins();
   }
@@ -133,6 +166,36 @@ class MyBins extends Component {
                 onChange={this.onChange}
                 options={this.state.bins}
               />
+              <br/>
+              <br/>
+              {this.state.selected !== "" &&
+              (
+                <Button.Group vertical>
+                <Button
+                width={2}
+                onClick={this.deleteUUID}
+                icon='trash alternate'
+                labelPosition='left'
+                color='red'
+                content='Delete this bin'
+                  >
+                </Button>
+                      <CopyToClipboard
+                      text={this.state.selected+".gel0.space"}
+                      onCopy={() => this.setState({copied: true})}
+                      >
+                      <Button
+                      icon='copy outline'
+                      labelPosition='left'
+                      content='Copy domain name'
+                      color='yellow'
+                        >
+                      </Button>
+                      </CopyToClipboard>
+
+                  </Button.Group>
+                    )
+            }
             </Grid.Column>
             <Grid.Column width={10}>
               {this.state.selected === "" && (

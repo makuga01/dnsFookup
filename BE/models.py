@@ -73,6 +73,16 @@ class DnsModel(db.Model):
         db.session.commit()
 
     @classmethod
+    def delete_by_uuid(cls, uuid, username):
+        """
+        Deletes supplied UUID
+        """
+        x = cls.query.filter_by(uuid = uuid, username = username).delete()
+        db.session.commit()
+        success = True if x == 1 else False
+        return {'success': success}
+
+    @classmethod
     def find_by_uuid(cls, uuid):
         """
         Used in dns_resources to check if uuid exists
@@ -136,7 +146,7 @@ class LogModel(db.Model):
 
 
     @classmethod
-    def uuid_logs(cls, uuid, username):
+    def uuid_logs(cls, uuid, username, per_page=50, page=1):
         """
         Returns list of All the logs of supplied uuid
         I have to implement pagination for this
@@ -152,7 +162,7 @@ class LogModel(db.Model):
                 'created_date': x.created_date
             }
         if uuid in [y['uuid'] for y in DnsModel.find_by_user(username)]:
-            return list(map(lambda x: to_json(x), cls.query.filter_by(uuid = uuid, )))
+            return list(map(lambda x: to_json(x), cls.query.filter_by(uuid = uuid).paginate(page,per_page,error_out=False).items))
         else:
             return []
     @classmethod

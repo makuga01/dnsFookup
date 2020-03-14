@@ -1,0 +1,31 @@
+sql:
+        protocol: 'postgresql+psycopg2'
+        user: 'postgres'
+        password: 'CHANGETHISTOO'
+        host: 'localhost'
+        db: 'dnsfookup'
+        deprec_warn: false
+
+jwt:
+        secret_key: 'U(RH*3y328u$#ibf*YGRIBFJ)IHF(**^#@&!)'
+        blacklist_enabled: true
+        blacklist_token_checks: ['access']
+        token_expires: 21600 # 6 hours
+
+redis:
+        password: 'CHANGETHISPW'
+        host: '127.0.0.1'
+        port: 6379
+        expiration: 3600 # expiration of redis key - default = 3600s 
+        timeout: 3
+
+dns:
+        domain: 'gel0.space'
+        #UDP port DNS server will listen on, for testing purposes it's on 5053,
+        #if you want to deploy the app on server change this to 53
+        port: 53
+        ip: '127.0.0.1'
+        # Failure ip - If server runs over some error it tries to 
+        # resolve to this ip (If that is possible)
+        failure_ip: '0.0.0.0'
+

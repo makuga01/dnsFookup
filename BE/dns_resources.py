@@ -5,19 +5,23 @@ import json
 from uuid import uuid4
 from redis import StrictRedis
 from IPy import IP
+import yaml
 
 """
 *** CONFIG ***
 """
-DOMAIN = "gel0.space"
+
+config = yaml.safe_load(open("../config.yaml"))
+
+DOMAIN = config['dns']['domain']
 
 redis_config = {
-  'host': '127.0.0.1',
-  'port': 6379,
-  'password': 'CHANGETHISPW'
+  'host': config['redis']['host'],
+  'port': config['redis']['port'],
+  'password': config['redis']['password']
 }
-REDIS_EXP = 60*60 #seconds
-redis = StrictRedis(socket_connect_timeout=3,**redis_config)
+REDIS_EXP = config['redis']['expiration'] #seconds
+redis = StrictRedis(socket_connect_timeout = config['redis']['timeout'],**redis_config)
 
 """
 *** CONFIG ***
@@ -94,9 +98,15 @@ class CreateRebindToken(Resource):
             - Is "4ever" or positive integer
             - Is not 0 - kind of makes no sense to repeat it 0 times
             """
-            if (data[i]['repeat'] != '4ever' and type(data[i]['repeat']) != int) or abs(data[i]['repeat']) != data[i]['repeat']:
+            if (data[i]['repeat'] != '4ever' and type(data[i]['repeat']) != int):
                 repeat = data[i]['repeat']
                 return {'message': f'Something went wrong, `repeat` field can only hold positive integers or string `4ever` (in [`ip_props`][{i}][`repeat`])'}, 500
+
+            elif type(data[i]['repeat']) == int:
+                if abs(data[i]['repeat']) != data[i]['repeat']:
+                    repeat = data[i]['repeat']
+                    return {'message': f'Something went wrong, try using positive integers (in [`ip_props`][{i}][`repeat`])'}, 500
+
             elif data[i]['repeat'] == 0:
                 return {'message': f'How am I supposed to repeat it 0 times??? [`ip_props`][{i}][`repeat`]'}, 500
 
@@ -205,6 +215,14 @@ class GetUuidLogs(Resource):
         parser.add_argument('uuid', help = 'This field cannot be blank', required = True)
         uuid = parser.parse_args()['uuid']
         return LogModel.uuid_logs(uuid, get_jwt_identity())
+
+class DeleteUUID(Resource):
+    @jwt_required
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('uuid', help = 'This field cannot be blank', required = True)
+        uuid = parser.parse_args()['uuid']
+        return DnsModel.delete_by_uuid(uuid, get_jwt_identity())
 
 class GetStatistics(Resource):
     """

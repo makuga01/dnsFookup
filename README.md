@@ -241,6 +241,25 @@ It will never resolve to 1.1.1.1 ...Almost
 But there is one exception to this 4ever loop
 info about what was resolved and what should be resolved next is stored in redis with expiration set to 1 hour, so the domain will resolve to 1.1.1.1 again in 1 hour after creating it. You can change this setting in REDIS_EXP variable in `dns.py` and `dns_resources.py`
 
+## Delete token
+
+`POST /api/fookup/delete`
+
+*JSON body:*
+```
+{
+ "uuid": "0dd4d9083d7647e1a5fd5f1444e655ce"
+}
+```
+
+*Response:*
+ ```
+{
+    "success": true
+}
+```
+
+
 ## List all bins `/api/fookup/listAll`
 
 `GET /api/fookup/listAll`
@@ -386,11 +405,10 @@ This just gets the statistics for the frontend app
 
 ## TODO
 
-FE - create new token form
-FE - show error messages on screen
 FE - in /mybins add a brief overview of selected bin
--DONE- API - shorten long uuid domains? - uuid4().hex -DONE-
--DONE- DNS SERVER except - if invalid IP is supplied dont crash -DONE-
+
 FE+BE - pagination on logs
-FE - ability to specify 4ever into repeat field
+
 FE+BE - delete bin
+
+BE - CNAME!

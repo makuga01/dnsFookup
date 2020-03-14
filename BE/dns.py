@@ -2,36 +2,29 @@ import socket, glob, json
 from redis import StrictRedis
 from app import db
 from datetime import datetime
+import yaml
 
 """
 *** CONFIG ***
 """
 
-"""
-UDP port DNS server will listen on, for testing purposes it's on 5053,
-if you want to deploy the app on server change this to 53
-"""
-port = 5053
-ip = "127.0.0.1"
+config = yaml.safe_load(open("../config.yaml"))
+
+port = config['dns']['port']
+ip = config['dns']['ip']
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((ip, port))
 
-"""
-Failure ip - If server runs over some error
-it tries to resolve to this ip (If that is possible)
-"""
-FAILURE_IP = '0.0.0.0'
+FAILURE_IP = config['dns']['failure_ip']
 
-"""
-Redis configuration
-REDIS_EXP - expiration of redis key
-"""
-
-redis_config = {"host": "127.0.0.1", "port": 6379, 'password': 'CHANGETHISPW'}
-REDIS_EXP = 60 * 60  # 1 hour
-redis = StrictRedis(socket_connect_timeout=3, **redis_config)
-
+redis_config = {
+  'host': config['redis']['host'],
+  'port': config['redis']['port'],
+  'password': config['redis']['password']
+}
+REDIS_EXP = config['redis']['expiration'] #seconds
+redis = StrictRedis(socket_connect_timeout = config['redis']['timeout'],**redis_config)
 
 """
 *** CONFIG ***

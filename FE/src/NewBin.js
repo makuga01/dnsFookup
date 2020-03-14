@@ -10,6 +10,7 @@ import {
   Divider
 } from "semantic-ui-react";
 import { Checkbox, Input, Radio, Select, TextArea } from "semantic-ui-react";
+import {CopyToClipboard} from 'react-copy-to-clipboard';
 
 class NewBin extends Component {
   state = {
@@ -25,9 +26,8 @@ class NewBin extends Component {
         <Form.Field
           control={Input}
           label="Repeat"
-          placeholder="how many times to repeat"
+          placeholder="integer or '4ever'"
           id="repeat_1"
-          input="number"
         />
       </Form.Group>
     ],
@@ -74,9 +74,8 @@ class NewBin extends Component {
         <Form.Field
           control={Input}
           label="Repeat"
-          placeholder="how many times to repeat"
+          placeholder="integer or '4ever'"
           id={"repeat_" + inputs_len}
-          input="number"
         />
       </Form.Group>
     );
@@ -100,9 +99,8 @@ class NewBin extends Component {
           <Form.Field
             control={Input}
             label="Repeat"
-            placeholder="how many times to repeat"
+            placeholder="integer or '4ever'"
             id="repeat_1"
-            input="number"
           />
         </Form.Group>
       ]
@@ -120,9 +118,15 @@ class NewBin extends Component {
       };
       var i;
       for (i = 1; i < this.state.inputs.length+1; i++) {
+        if (isNaN(document.getElementById('repeat_'+i).value) && (document.getElementById('repeat_'+i).value !== "4ever")){
+          console.log(isNaN(document.getElementById('repeat_'+i).value))
+          console.log(document.getElementById('repeat_'+i).value)
+          this.handleErrorMsg('Repeat field should contain "4ever" or a valid number');
+          return false;
+        }
         var ip_props = {
           "ip": document.getElementById('ip_'+i).value,
-          "repeat": Number(document.getElementById('repeat_'+i).value)
+          "repeat": !isNaN(document.getElementById('repeat_'+i).value) ? Number(document.getElementById('repeat_'+i).value) : "4ever"
         };
         if(ip_props["ip"] === "" | ip_props["repeat"] === ""){
           this.handleErrorMsg('All fields have to be filled out');
@@ -146,6 +150,7 @@ class NewBin extends Component {
         .then(res => res.json())
         .then(data => {
           if (data.subdomain != null) {
+            this.setState({subdomain: data.subdomain})
             this.handleSuccMsg("Here you go! "+data.subdomain);
           }
           else if(data.message != null){
@@ -175,7 +180,7 @@ class NewBin extends Component {
                 <Header.Content>Create OP dns bin!</Header.Content>
                 <Header.Subheader>
                   For now, just A records are supported so no IPV6 or CNAME
-                  unfortunatelly and max 32 IPs can be used (I think nodody will
+                  unfortunatelly and max 32 IPs can be used (I hope nodody will
                   ever need to use that many)
                 </Header.Subheader>
               </Header>
@@ -203,37 +208,38 @@ class NewBin extends Component {
                         <Form.Field
                           control={Input}
                           label="Name of DNSbin"
-                          placeholder="example83821"
+                          placeholder="example"
                           width={15}
                           id='name'
                         />
-                        <Button
-                          size="large"
-                          icon
-                          negative
-                          circular
-                          onClick={() => this.handleResetInput()}
-                        >
-                          <Icon name="delete" />
-                        </Button>
-                        <Button
-                          size="large"
-                          icon
-                          secondary
-                          circular
-                          onClick={() => this.handleAddInput()}
-                        >
-                          <Icon name="plus" />
-                        </Button>
+
                       </Form.Group>
                     </Grid.Column>
                   </Grid>
+
+                  <Button.Group>
+                    <Button
+
+                      icon="plus"
+                      color='yellow'
+                      content='Add field'
+                      onClick={() => this.handleAddInput()}
+                    />
+                    <Button
+
+                      icon="delete"
+                      color='red'
+                      content='Delete fields'
+                      onClick={() => this.handleResetInput()}
+                    />
+                  </Button.Group>
+                  <Divider/>
                   {this.state.inputs}
 
                   <Form.Field
                   control={Button}
                   fluid
-                  primary
+                  color='yellow'
                   size="large"
                   onClick={() => this.handleSubmit()}
                   >
@@ -243,7 +249,23 @@ class NewBin extends Component {
                   positive
                   hidden={this.state.hideSuccMsg}
                   >
-                    <Message.Header>{this.state.succMsgText}</Message.Header>
+                    <Message.Header>
+                    {this.state.succMsgText}
+                    <br/>
+                    <CopyToClipboard
+                    text={this.state.subdomain}
+                    onCopy={() => this.setState({copied: true})}
+                    >
+                      <Button
+                      icon='copy outline'
+                      labelPosition='left'
+                      content='Copy subdomain'
+
+                      color='olive'
+                      >
+                      </Button>
+                  </CopyToClipboard>
+                    </Message.Header>
                   </Message>
                 </Form>
               </Segment>

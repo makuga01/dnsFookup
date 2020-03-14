@@ -63,7 +63,7 @@ class UserLogoutAccess(Resource):
             revoked_token.add()
             return {'message': 'Access token has been revoked'}
         except:
-            return {'message': 'Something went wrong', 'error': True}, 500
+            return {'message': 'Something went wrong', 'error': True}
 
 class UserName(Resource):
     @jwt_required

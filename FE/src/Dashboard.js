@@ -10,6 +10,7 @@ import {
   Statistic,
   Divider
 } from "semantic-ui-react";
+
 import {
   BrowserRouter as Router,
   Route,
@@ -42,8 +43,8 @@ class Dashboard extends Component {
       .then(res => res.json())
       .then(data => {
         if (
-          (data.msg !== "Token has expired") &
-          (data.msg !== "Not enough segments")
+          (data.message !== "Token has expired") &
+          (data.message !== "Not enough segments")
         ) {
           this.setState({
             statistics: data
@@ -100,13 +101,11 @@ class Dashboard extends Component {
           <Grid.Column style={{ maxWidth: 650 }}>
             <Button.Group fluid vertical labeled icon>
               <Link to="/dnsbin">
-                <Button size="huge" icon="globe" content="Classic DNS bin" />
-              </Link>
-              <Link to="/dnsbin">
                 <Button
                   size="huge"
                   icon="shuffle"
-                  content="Fucking overpowered DNS bin"
+                  content="Create OP DNS bin"
+                  color='yellow'
                 />
               </Link>
             </Button.Group>
