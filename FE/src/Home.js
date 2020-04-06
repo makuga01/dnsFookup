@@ -15,20 +15,29 @@ class Home extends Component {
           <Grid.Row />
         </Grid>
 
-        <Header size="huge" icon textAlign="center">
-          <Icon name="globe" circular />
+        <Header
+          size="huge"
+          icon
+          textAlign="center"
+          inverted
+        >
+          <Icon
+            name="globe"
+            circular
+            inverted
+          />
           <Header.Content>DNSfookup</Header.Content>
-          <Header.Subheader>DNS rebinding... Just way better!</Header.Subheader>
+          <Header.Subheader>DNS that fucks things up</Header.Subheader>
         </Header>
         <Grid centered>
           <Grid.Row columns={1}>
             <Link to="/login">
-              <Button big primary>
+              <Button big primary inverted>
                 Log In
               </Button>
             </Link>
             <Link to="/signup">
-              <Button big secondary>
+              <Button big inverted>
                 Sign Up
               </Button>
             </Link>

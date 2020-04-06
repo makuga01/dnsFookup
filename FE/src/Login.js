@@ -32,17 +32,22 @@ class Login extends Component {
         verticalAlign="middle"
       >
         <Grid.Column style={{ maxWidth: 450 }}>
-          <Header as="h2" color="black" textAlign="center">
+          <Header
+            as="h2"
+            color="black"
+            textAlign="center"
+            inverted
+          >
             Log-in to your account
           </Header>
-          <Form size="large" id="loginForm">
+          <Form size="large" id="loginForm" inverted>
             {this.state.loginError && (
               <Message color="red" icon>
                 <Icon name="ban" />
                 Incorrect Username or Password
               </Message>
             )}
-            <Segment stacked>
+            <Segment stacked inverted>
               <Form.Input
                 fluid
                 icon="user"
@@ -59,14 +64,24 @@ class Login extends Component {
                 id="password"
               />
 
-              <Button primary onClick={this.postLogin} fluid size="large">
+              <Button
+                primary
+                onClick={this.postLogin}
+                fluid
+                inverted
+                size="large"
+              >
                 Login
               </Button>
               <br />
               <Grid>
                 <Grid.Column>
                   <Link to="/signup">
-                    <Button secondary style={{ maxWidth: 300 }} size="medium">
+                    <Button
+                      style={{ maxWidth: 300 }}
+                      size="medium"
+                      inverted
+                    >
                       Sign up
                     </Button>
                   </Link>
@@ -88,7 +103,7 @@ class Login extends Component {
     data.append("username", email);
     data.append("password", password);
 
-    fetch("http://localhost:5000/auth/login", {
+    fetch("http://rbnd.gl0.eu:5000/auth/login", {
       method: "POST",
       headers: new Headers({
         // 'Content-Type': 'form-data',

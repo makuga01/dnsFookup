@@ -1,5 +1,6 @@
-IPy
+validators
 redis
+jsonschema
 uuid
 flask_jwt_extended
 flask_restful

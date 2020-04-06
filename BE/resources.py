@@ -1,15 +1,14 @@
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, jwt_refresh_token_required, get_jwt_identity, get_raw_jwt)
 
-parser = reqparse.RequestParser()
-parser.add_argument('username', help = 'This field cannot be blank', required = True)
-parser.add_argument('password', help = 'This field cannot be blank', required = True)
-
 
 from models import UserModel, RevokedTokenModel
 
 class UserRegistration(Resource):
     def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('username', help = 'This field cannot be blank', required = True)
+        parser.add_argument('password', help = 'This field cannot be blank', required = True)
         data = parser.parse_args()
 
         if UserModel.find_by_username(data['username']):
@@ -36,6 +35,9 @@ class UserRegistration(Resource):
 
 class UserLogin(Resource):
     def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('username', help = 'This field cannot be blank', required = True)
+        parser.add_argument('password', help = 'This field cannot be blank', required = True)
         data = parser.parse_args()
         current_user = UserModel.find_by_username(data['username'])
 
@@ -69,6 +71,25 @@ class UserName(Resource):
     @jwt_required
     def get(self):
         return {"name": get_jwt_identity()}
+
+class ChangePw(Resource):
+    @jwt_required
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('old_password', help = 'This field cannot be blank', required = True)
+        parser.add_argument('new_password', help = 'This field cannot be blank', required = True)
+        data = parser.parse_args()
+        user = UserModel.find_by_username(get_jwt_identity())
+        if len(data['new_password']) <= 7:
+            return {'message': 'Password has to be at least 8 chars long', 'success': False}
+        elif UserModel.verify_hash(data['old_password'], user.password):
+            try:
+                UserModel.update_pw(user.username, UserModel.generate_hash(data['new_password']))
+                return {'success': True}
+            except:
+                return {'success': False, 'message': 'Something went wrong'}
+        else:
+            return {'message': 'Wrong password', 'success': False}
 
 # class UserLogoutRefresh(Resource):
 #     @jwt_refresh_token_required

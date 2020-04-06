@@ -39,7 +39,7 @@ class Dashboard extends Component {
         "Access-Control-Request-Headers": "Authorization, Accept"
       })
     };
-    fetch("http://localhost:5000/api/statistics", obj)
+    fetch("http://rbnd.gl0.eu:5000/api/statistics", obj)
       .then(res => res.json())
       .then(data => {
         if (
@@ -67,15 +67,17 @@ class Dashboard extends Component {
           verticalAlign="middle"
         >
           <Grid.Column style={{ maxWidth: 450 }}>
-            <Header size="huge" icon textAlign="center">
-              <Icon name="globe" circular />
+            <Header inverted size="huge" icon textAlign="center">
+              <Icon inverted name="globe" circular />
               <Header.Content>DNSfookup</Header.Content>
-              <Header.Subheader>
-                DNS rebinding... Just way better!
+              <Header.Subheader
+              inverted
+              >
+                DNS that fucks things up
               </Header.Subheader>
             </Header>
             <Divider />
-            <Statistic.Group>
+            <Statistic.Group inverted>
               <Statistic>
                 <Statistic.Value>
                   {this.state.statistics.created_bins}
@@ -102,10 +104,11 @@ class Dashboard extends Component {
             <Button.Group fluid vertical labeled icon>
               <Link to="/dnsbin">
                 <Button
+                  inverted
                   size="huge"
                   icon="shuffle"
-                  content="Create OP DNS bin"
-                  color='yellow'
+                  content="Let's go!"
+                  primary
                 />
               </Link>
             </Button.Group>

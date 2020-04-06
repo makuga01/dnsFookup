@@ -40,7 +40,7 @@ class Signup extends Component {
     data.append("username", email);
     data.append("password", password);
 
-    fetch("http://localhost:5000/auth/signup", {
+    fetch("http://rbnd.gl0.eu:5000/auth/signup", {
       method: "POST",
       headers: new Headers({
         // 'Content-Type': 'form-data',
@@ -69,17 +69,29 @@ class Signup extends Component {
         verticalAlign="middle"
       >
         <Grid.Column style={{ maxWidth: 450 }}>
-          <Header as="h2" color="black" textAlign="center">
+          <Header
+            as="h2"
+            color="black"
+            textAlign="center"
+            inverted
+          >
             Create new account!
           </Header>
-          <Form size="large" id="signupForm">
+          <Form
+            size="large"
+            inverted
+            id="signupForm"
+          >
             {this.state.signupError && (
               <Message icon color="red">
                 <Icon name="ban" />
                 {this.state.errMessage}
               </Message>
             )}
-            <Segment stacked>
+            <Segment
+              stacked
+              inverted
+            >
               <Form.Input
                 fluid
                 icon="user"
@@ -96,14 +108,23 @@ class Signup extends Component {
                 id="password"
               />
 
-              <Button secondary onClick={this.postSignup} fluid size="large">
+              <Button
+                primary
+                onClick={this.postSignup}
+                fluid size="large"
+                inverted
+              >
                 Sign up
               </Button>
               <br />
               <Grid>
                 <Grid.Column>
                   <Link to="/login">
-                    <Button primary style={{ maxWidth: 300 }} size="medium">
+                    <Button
+                      style={{ maxWidth: 300 }}
+                      size="medium"
+                      inverted
+                    >
                       Log in
                     </Button>
                   </Link>

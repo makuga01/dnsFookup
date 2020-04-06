@@ -3,8 +3,15 @@ import {
   BrowserRouter as Router,
   Route,
   Redirect,
-  Link
+  Link,
+  useHistory
 } from "react-router-dom";
+import {
+  Segment,
+  Grid,
+  Button,
+  Icon
+} from "semantic-ui-react";
 import "./App.css";
 import Home from "./Home";
 import Login from "./Login";
@@ -13,14 +20,20 @@ import Dashboard from "./Dashboard";
 import TopBar from "./TopBar";
 import MyBins from "./MyBins";
 import NewBin from "./NewBin";
+import Settings from "./Settings";
+import Support from "./Support";
 
 /* eslint-disable */
+
+
 
 class App extends Component {
   state = {
     logged: false,
-    name: ""
+    name: "",
+    redirectSupport:false
   };
+
 
   getUser = () => {
     var bearer = "Bearer " + localStorage.getItem("access_token");
@@ -34,7 +47,7 @@ class App extends Component {
         "Access-Control-Request-Headers": "Authorization, Accept"
       })
     };
-    fetch("http://localhost:5000/api/user", obj)
+    fetch("http://rbnd.gl0.eu:5000/api/user", obj)
       .then(res => res.json())
       .then(data => {
         if (
@@ -71,13 +84,12 @@ class App extends Component {
       name: ""
     });
     localStorage.removeItem("access_token");
-    console.log("user unset");
     window.location = "/"
   };
 
   componentDidMount() {
-
-    this.getUser()
+    this.getUser();
+    this.setState({redirectSupport:false});
   }
 
   isLogged = () => {
@@ -86,7 +98,7 @@ class App extends Component {
 
   handleLogout = event => {
     var bearer = "Bearer " + localStorage.getItem("access_token");
-    fetch("http://localhost:5000/auth/logout", {
+    fetch("http://rbnd.gl0.eu:5000/auth/logout", {
       method: "POST",
       headers: new Headers({
         Accept: "aplication/json",
@@ -119,6 +131,7 @@ class App extends Component {
             />
           )}
           <Route path="/" exact component={Home} />
+          <Route path="/support" component={() => <Support />} />
           {!this.isLogged() && (
             <div>
               <Route
@@ -154,9 +167,73 @@ class App extends Component {
               />
               <Route path="/mybins" component={() => <MyBins />} />
               <Route path="/dnsbin" component={() => <NewBin />} />
+              <Route path="/settings" component={() => <Settings />} />
             </div>
           )}
+          {this.state.redirectSupport === true && <Redirect to="/support" />}
         </Router>
+        <Segment
+          id='footer'
+          inverted
+        >
+        <Grid
+        >
+          <Grid.Row>
+          <Grid.Column>
+            <Button icon inverted>
+            <Icon name='github'/>Star this project
+
+            </Button>
+
+            <Button
+              inverted
+              href="https://geleta.eu/whoami"
+              target="_blank"
+              onClick={() => {window.open("https://keybase.io/gel0")}}
+            >
+              <Icon
+                name='envelope outline'
+              />
+              Any questions/suggestions? Message me!
+            </Button>
+
+            <Button
+              inverted
+              href="https://geleta.eu/whoami"
+              target="_blank"
+              onClick={() => {window.open("https://geleta.eu/whoami")}}
+            >
+            <Icon
+              name='user outline'
+            />
+              About me
+            </Button>
+
+            { !this.state.logged &&
+            <Button
+              onClick={() => this.setState({redirectSupport:true})}
+              inverted
+            >
+            <Icon
+              name='dollar sign'
+            />
+            Support me ❤️
+            </Button>
+            }
+            {this.state.redirectSupport &&
+            <Button
+              inverted
+              onClick={() => {this.setState({redirectSupport:false});window.location.replace("/");}}
+            >
+              <Icon name='home'/><Icon name='arrow left'/>
+            </Button>}
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
+
+
+        </Segment>
+
       </div>
     );
   }

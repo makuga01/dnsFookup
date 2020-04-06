@@ -1,6 +1,8 @@
 import React, { Component } from "react";
 import {
   Grid,
+  Segment,
+  Pagination,
   Dropdown,
   Header,
   Icon,
@@ -8,16 +10,22 @@ import {
   Table,
   Menu,
   Label,
-  Button
+  Button,
+  Popup
 } from "semantic-ui-react";
 import { Link } from "react-router-dom";
 import {CopyToClipboard} from 'react-copy-to-clipboard';
 
 class MyBins extends Component {
   state = {
+    active: "mybins",
     selected: "",
     bins: [],
-    logs: []
+    logs: [],
+    props: [],
+    total_pages: 1,
+    total_entries: "?",
+    curr_page: 1
   };
 
   getBins = () => {
@@ -30,7 +38,7 @@ class MyBins extends Component {
         "Access-Control-Request-Headers": "Authorization, Accept"
       })
     };
-    fetch("http://localhost:5000/api/fookup/listAll", obj)
+    fetch("http://rbnd.gl0.eu:5000/api/fookup/listAll", obj)
       .then(res => res.json())
       .then(data => {
         if (
@@ -50,22 +58,25 @@ class MyBins extends Component {
       });
   };
 
-  getLogs = uuid => {
+  getLogs = (uuid, page) => {
     var bearer = "Bearer " + localStorage.getItem("access_token");
     event.preventDefault();
-    var data = new FormData();
-    data.append("uuid", uuid);
+    var data = {
+      "uuid": uuid,
+      "page": page
+    };
     var obj = {
       method: "POST",
       headers: new Headers({
         Accept: "aplication/json",
         Authorization: bearer,
         //   "Access-Control-Allow-Origin": "*",
+        'Content-Type': 'application/json',
         "Access-Control-Request-Headers": "Authorization, Accept"
       }),
-      body: data
+      body: JSON.stringify(data)
     };
-    fetch("http://localhost:5000/api/fookup/logs/uuid", obj)
+    fetch("http://rbnd.gl0.eu:5000/api/fookup/logs/uuid", obj)
       .then(res => res.json())
       .then(data => {
         if (
@@ -73,9 +84,10 @@ class MyBins extends Component {
           (data.msg !== "Not enough segments")
         ) {
           this.setState({
-            logs: data.reverse()
+            total_pages: data.pages,
+            total_entries: data.entries,
+            logs: data.data.reverse()
           });
-          console.log(data);
         }
       })
       .catch(err => {
@@ -87,22 +99,22 @@ class MyBins extends Component {
     var bearer = "Bearer " + localStorage.getItem("access_token");
     event.preventDefault();
     var uuid = this.state.selected
-    var data = new FormData();
-    data.append("uuid", uuid);
+    var data = {"uuid": uuid};
     var obj = {
       method: "POST",
       headers: new Headers({
         Accept: "aplication/json",
         Authorization: bearer,
         //   "Access-Control-Allow-Origin": "*",
+        'Content-Type': 'application/json',
         "Access-Control-Request-Headers": "Authorization, Accept"
       }),
-      body: data
+      body: JSON.stringify(data)
     };
-    fetch("http://localhost:5000/api/fookup/delete", obj)
+    fetch("http://rbnd.gl0.eu:5000/api/fookup/delete", obj)
       .then(res => res.json())
       .then(data => {
-        if (data.success === true) {
+        if (data.uuid_props.success === true) {
           this.setState({
             selected: ""
           });
@@ -115,21 +127,69 @@ class MyBins extends Component {
       });
   };
 
+  getProps = (uuid) => {
+    var bearer = "Bearer " + localStorage.getItem("access_token");
+    event.preventDefault();
+    var data = {"uuid": uuid};
+    var obj = {
+      method: "POST",
+      headers: new Headers({
+        Accept: "aplication/json",
+        Authorization: bearer,
+        //   "Access-Control-Allow-Origin": "*",
+        'Content-Type': 'application/json',
+        "Access-Control-Request-Headers": "Authorization, Accept"
+      }),
+      body: JSON.stringify(data)
+    };
+    fetch("http://rbnd.gl0.eu:5000/api/fookup/props", obj)
+      .then(res => res.json())
+      .then(data => {
+        if (data.ip_props) {
+          var props = [];
+          var x;
+          for (x in data.ip_props){
+            props.push(data.ip_props[x])
+          }
+          this.setState({
+            'props': props
+          });
+          console.log(this.state.props)
+        }
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  };
+
   componentDidMount() {
     this.getBins();
   }
   onChange = (e, data) => {
-    this.setState({ selected: data.value });
-    this.getLogs(data.value);
+    this.setState(
+      { selected: data.value, curr_page: 1, total_pages: 1},
+    this.getLogs(data.value, 1),
+    this.getProps(data.value)
+    );
   };
 
   handleReload = () => {
-    this.getLogs(this.state.selected);
+    this.setState({ curr_page: 1, total_pages: 1},
+      this.getLogs(this.state.selected, 1)
+    );
   };
+
+  handlePaginationChange = (e, { activePage }) => {
+    this.setState({curr_page: activePage},
+      this.getLogs(this.state.selected, activePage)
+    );
+  };
+
+
 
   logsTable(input_data) {
     return (
-      <Table celled loading>
+      <Table celled loading inverted>
         <Table.Header>
           <Table.Row>
             <Table.HeaderCell>Resolved to</Table.HeaderCell>
@@ -169,49 +229,144 @@ class MyBins extends Component {
               <br/>
               <br/>
               {this.state.selected !== "" &&
-              (
-                <Button.Group vertical>
-                <Button
-                width={2}
-                onClick={this.deleteUUID}
-                icon='trash alternate'
-                labelPosition='left'
-                color='red'
-                content='Delete this bin'
+              (<div>
+                <Segment.Group >
+                  <Segment
+                  textAlign='left'
+                  inverted
+                  primary
                   >
-                </Button>
-                      <CopyToClipboard
-                      text={this.state.selected+".gel0.space"}
-                      onCopy={() => this.setState({copied: true})}
-                      >
-                      <Button
-                      icon='copy outline'
-                      labelPosition='left'
-                      content='Copy domain name'
-                      color='yellow'
-                        >
-                      </Button>
-                      </CopyToClipboard>
-
-                  </Button.Group>
+                    Rebinding flow:
+                  </Segment>
+                {this.state.props.map(i => (
+                  <Segment
+                    textAlign='left'
+                    secondary
+                    inverted
+                  >
+                  {
+                    (i.ip.length > 16) && (
+                    <Popup
+                    content={i.ip}
+                    trigger={<div>
+                    { i.type===undefined ? "A":i.type} "{i.ip.slice(0, 5)+'...'+i.ip.slice(-5)}" <b>{i.repeat}</b> time{(i.repeat==1) ? '':'s'}
+                    </div>}
+                    />
+                  )
+                  }
+                  {
+                    (i.ip.length <= 16) &&
+                    (
+                      <div>
+                      { i.type===undefined ? "A":i.type} "{i.ip}" <b>{i.repeat}</b> time{(i.repeat==1) ? '':'s'}
+                      </div>
                     )
+                  }
+                  </Segment>
+                ))}
+
+                </Segment.Group>
+                <Segment
+                textAlign='left'
+                tertiary
+                inverted
+                >
+                <b>{this.state.total_entries}</b> DNS queries recieved
+                </Segment>
+                <Button.Group vertical>
+                <CopyToClipboard
+                  text={this.state.selected+".gel0.space"}
+                  onCopy={() => this.setState({copied: true})}
+                >
+                  <Button
+                    icon='copy outline'
+                    labelPosition='left'
+                    content='Copy domain name'
+                    color='olive'
+                    inverted
+                  />
+                </CopyToClipboard>
+                <Popup
+                  inverted
+                  header='Are you sure?'
+                  on='click'
+                  trigger={
+                      <Button
+                      width={2}
+                      icon='trash alternate'
+                      labelPosition='left'
+                      color='red'
+                      content='Delete this bin'
+                      inverted
+                      />
+                  }
+                  content={
+                    <Button
+                      width={2}
+                      onClick={this.deleteUUID}
+                      icon='exclamation'
+                      labelPosition='left'
+                      color='red'
+                      content={'I\'m sure, just delete it'}
+                    />
+                  }
+                />
+                </Button.Group>
+
+                    </div>)
             }
             </Grid.Column>
-            <Grid.Column width={10}>
+            <Grid.Column
+              width={10}
+            >
               {this.state.selected === "" && (
-                <Header size="huge" icon textAlign="center">
-                  <Icon name="shuffle" />
-                  <Header.Content>My DNSfookup bins</Header.Content>
-                  <Header.Subheader>
-                    Select name of your bin and view logs!
-                  </Header.Subheader>
+                <Header
+                  size="huge"
+                  icon
+                  inverted
+                  textAlign="center"
+                >
+                  <Icon
+                    name="shuffle"
+                    inverted
+                    circular
+                  />
+                  <Header.Content>Select your DNS bin!</Header.Content>
+
                 </Header>
               )}
               {this.state.selected !== "" && this.logsTable(this.state.logs)}
+              {this.state.selected !== "" &&
+              (<Grid
+                columns={1}
+               >
+                <Grid.Column>
+                  <Pagination
+                    inverted
+                    activePage={this.state.curr_page}
+                    boundaryRange={1}
+                    onPageChange={this.handlePaginationChange}
+                    size='small'
+                    siblingRange={1}
+                    totalPages={this.state.total_pages}
+                    firstItem={null}
+                    lastItem={null}
+                    prevItem={(this.state.curr_page!==1) ? undefined : null}
+                    nextItem={(this.state.curr_page!==this.state.total_pages) ? undefined : null}
+                  />
+                </Grid.Column>
+              </Grid>)}
+
             </Grid.Column>
-            <Grid.Column width={1}>
-              <Button circular icon="redo" onClick={this.handleReload} />
-            </Grid.Column>
+            {this.state.selected !== "" &&
+            (<Grid.Column width={1}>
+              <Button
+                circular
+                inverted
+                icon="redo"
+                onClick={this.handleReload}
+              />
+            </Grid.Column>)}
           </Grid.Row>
         </Grid>
       </div>

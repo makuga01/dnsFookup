@@ -1,4 +1,10 @@
-import socket, glob, json
+import sys
+import time
+import threading
+import traceback
+import socketserver as SocketServer
+from dnslib import *
+import json
 from redis import StrictRedis
 from app import db
 from datetime import datetime
@@ -13,10 +19,11 @@ config = yaml.safe_load(open("../config.yaml"))
 port = config['dns']['port']
 ip = config['dns']['ip']
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind((ip, port))
-
+USE_FAILURE = config['dns']['use_failure_ip']
 FAILURE_IP = config['dns']['failure_ip']
+host_domain = config['dns']['domain']
+use_fail_ns = config['dns']['use_fail_ns']
+fail_ns = config['dns']['fail_ns']
 
 redis_config = {
   'host': config['redis']['host'],
@@ -76,98 +83,61 @@ Lambda functions used for easier manipulation with redis
 setJson = lambda uid, data: redis.setex(uid, REDIS_EXP, json.dumps(data))
 getJson = lambda uid: json.loads(redis.get(uid))
 
-"""
-The following code is from https://github.com/howCodeORG/howDNS
-I only changed the getrecs function for DNS rebinding to work
-"""
+def gen_nxdomain_reply(request):
+        # Stolen from https://github.com/major1201/dns-router/blob/master/dns-router.py
 
+        reply = request.reply()
+        reply.header.rcode = getattr(RCODE, 'NXDOMAIN')
+        return reply
 
-def getflags(flags):
+def getResType(type):
+    """
+    This function returns dnslib function and value of record type necessary for creating valid dns answer
 
-    byte1 = bytes(flags[:1])
-    byte2 = bytes(flags[1:2])
+    Note for myself/someone other working on this
+    Quick script to determine values for dns answer associated with record types
+    for i in range(255):
+        try:
+             print(QTYPE[i], i)
+        except: pass
+    """
+    types = {
+        "A": (1,A),
+        "AAAA": (28, AAAA),
+        "CNAME": (5, CNAME)
+    }
+    return(types[type])
 
-    rflags = ""
-
-    QR = "1"
-
-    OPCODE = ""
-    for bit in range(1, 5):
-        OPCODE += str(ord(byte1) & (1 << bit))
-
-    AA = "1"
-
-    TC = "0"
-
-    RD = "0"
-
-    # Byte 2
-
-    RA = "0"
-
-    Z = "000"
-
-    RCODE = "0000"
-
-    return int(QR + OPCODE + AA + TC + RD, 2).to_bytes(1, byteorder="big") + int(
-        RA + Z + RCODE, 2
-    ).to_bytes(1, byteorder="big")
-
-
-def getquestiondomain(data):
-
-    state = 0
-    expectedlength = 0
-    domainstring = ""
-    domainparts = []
-    x = 0
-    y = 0
-    for byte in data:
-        if state == 1:
-            if byte != 0:
-                domainstring += chr(byte)
-            x += 1
-            if x == expectedlength:
-                domainparts.append(domainstring)
-                domainstring = ""
-                state = 0
-                x = 0
-            if byte == 0:
-                domainparts.append(domainstring)
-                break
-        else:
-            state = 1
-            expectedlength = byte
-        y += 1
-
-    questiontype = data[y : y + 2]
-
-    return (domainparts, questiontype)
-
-
-def getrecs(data):
+def buildResponse(d, ADDR, PORT):
     """
     This function is used to look into redis/SQL and by the uuid (3rd level domain)
     get the IP the domain should resolve to at the moment
-
-    For DNS rebinding to work just this function needed to be changed
     """
-    domain, questiontype = getquestiondomain(data)
-    qt = ""
-    if questiontype == b"\x00\x01":
-        qt = "a"
 
+    data = DNSRecord.parse(d)
+    qtype = QTYPE[data.q.qtype]
+    domain = str(data.q.qname).split('.')
+    rtype = 1 # A
+    reply = DNSRecord(DNSHeader(id=data.header.id, qr=1, aa=1, ra=1), q=data.q)
+    fail_reply = reply if USE_FAILURE else gen_nxdomain_reply(data)
     """
-    First check if supplied domain has subdomains (if not resolve 0.0.0.0)
+    First check if supplied domain has subdomains (if not resolve to FAILURE_IP)
 
     Create list containing all subdomains requested and
     get uuid from them
     Request format: dig some.random.subdomains.{uuid}.gel0.space
     """
+
+    if '.'.join(domain[-3:-1]) != host_domain and use_fail_ns:
+        print(f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain[-3:-1])} is not my thing NS => {fail_ns}')
+        fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = 2, rclass = 1, rdata = NS(fail_ns)))
+        return fail_reply.pack()
+
     if len(domain) < 4:
-        print(f'{ADDR}:{PORT} {".".join(domain[:-1])} => No subdomain, no fun => {FAILURE_IP}')
-        props = [{"name": "", "ttl": 0, "value": FAILURE_IP}]
-        return (props, qt, domain)
+        print(f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain[:-1])} => No subdomain, no fun => {FAILURE_IP if USE_FAILURE else "NXDOMAIN"}')
+
+        fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = rtype, rclass = 1, rdata = A(FAILURE_IP))) if USE_FAILURE else 0
+        return fail_reply.pack()
     subs = domain[:-3]
     uuid = subs[-1]
 
@@ -180,12 +150,12 @@ def getrecs(data):
     """
     if not redis.exists(uuid):
         try:
-            data = DnsModel.get_props(uuid)["props"]
-            setJson(uuid, json.loads(data))
+            props = DnsModel.get_props(uuid)["props"]
+            setJson(uuid, json.loads(props))
         except:
-            print(f'{ADDR}:{PORT} {".".join(domain)[:-1]} (doesn\'t exist) => {FAILURE_IP}')
-            props = [{"name": "", "ttl": 0, "value": FAILURE_IP}]
-            return (props, qt, domain)
+            print(f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain)[:-1]} (doesn\'t exist) => {FAILURE_IP if USE_FAILURE else "NXDOMAIN"}')
+            fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = rtype, rclass = 1, rdata = A(FAILURE_IP))) if USE_FAILURE else 0
+            return fail_reply.pack()
 
     """
     Get info about uuid from redis
@@ -231,7 +201,11 @@ def getrecs(data):
     Aaaand finally return the data
     """
     resolve_to = rbnd_json["ip_props"][rbnd_json["ip_to_resolve"]]["ip"]
-    print(f'{ADDR}:{PORT} {".".join(domain)[:-1]} => {resolve_to}')
+    answer_type = rbnd_json["ip_props"][rbnd_json["ip_to_resolve"]].get("type")
+    now = str(datetime.now())
+    print(f'{now} - {ADDR}:{PORT} {answer_type if answer_type else "A"} {".".join(domain)[:-1]} => {resolve_to}')
+
+    rtype, rfunc = getResType(answer_type) if answer_type else (1, A)
 
     new_log = LogModel(
         uuid=uuid,
@@ -239,93 +213,81 @@ def getrecs(data):
         ip=ADDR,
         port=PORT,
         resolved_to=resolve_to,
-        created_date=str(datetime.now()),
+        created_date=now,
     )
     new_log.save_to_db()
 
-    props = [{"name": "", "ttl": 0, "value": resolve_to}]
+    print(resolve_to)
+    reply.add_answer(RR(rname = '.'.join(domain), rtype = rtype, rclass = 1, rdata = rfunc(resolve_to)))
+    return reply.pack()
 
-    return (props, qt, domain)
+# Stolen:
+# https://gist.github.com/andreif/6069838
 
+class BaseRequestHandler(SocketServer.BaseRequestHandler):
 
-def buildquestion(domainname, rectype):
-    qbytes = b""
+    def get_data(self):
+        raise NotImplementedError
 
-    for part in domainname:
-        length = len(part)
-        qbytes += bytes([length])
+    def send_data(self, data):
+        raise NotImplementedError
 
-        for char in part:
-            qbytes += ord(char).to_bytes(1, byteorder="big")
+    def handle(self):
+        ADDR, PORT = self.client_address
 
-    if rectype == "a":
-        qbytes += (1).to_bytes(2, byteorder="big")
-
-    qbytes += (1).to_bytes(2, byteorder="big")
-
-    return qbytes
-
-
-def rectobytes(domainname, rectype, recttl, recval):
-
-    rbytes = b"\xc0\x0c"
-
-    if rectype == "a":
-        rbytes = rbytes + bytes([0]) + bytes([1])
-
-    rbytes = rbytes + bytes([0]) + bytes([1])
-
-    rbytes += int(recttl).to_bytes(4, byteorder="big")
-
-    if rectype == "a":
-        rbytes = rbytes + bytes([0]) + bytes([4])
-
-        for part in recval.split("."):
-            rbytes += bytes([int(part)])
-    return rbytes
+        try:
+            data = self.get_data()
+            self.send_data(buildResponse(data, ADDR, PORT))
+        except Exception:
+            traceback.print_exc(file=sys.stderr)
 
 
-def buildresponse(data):
+class TCPRequestHandler(BaseRequestHandler):
+    # A bit modified since the original code errors out in python3.7
+    def get_data(self):
+        data = self.request.recv(8192).strip()
+        sz = int(data[:2].hex(), 16)
+        if sz < len(data) - 2:
+            raise Exception("Wrong size of TCP packet")
+        elif sz > len(data) - 2:
+            raise Exception("Too big TCP packet")
+        return data[2:]
 
-    # Transaction ID
-    TransactionID = data[:2]
-
-    # Get the flags
-    Flags = getflags(data[2:4])
-
-    # Question Count
-    QDCOUNT = b"\x00\x01"
-
-    # Answer Count
-    ANCOUNT = b"\x00\x01"
-
-    # Nameserver Count
-    NSCOUNT = (0).to_bytes(2, byteorder="big")
-
-    # Additonal Count
-    ARCOUNT = (0).to_bytes(2, byteorder="big")
-
-    dnsheader = TransactionID + Flags + QDCOUNT + ANCOUNT + NSCOUNT + ARCOUNT
-
-    # Create DNS body
-    dnsbody = b""
-
-    # Get answer for query
-    records, rectype, domainname = getrecs(data[12:])
-
-    dnsquestion = buildquestion(domainname, rectype)
-
-    for record in records:
-        dnsbody += rectobytes(domainname, rectype, record["ttl"], record["value"])
-
-    return dnsheader + dnsquestion + dnsbody
+    def send_data(self, data):
+        sz = hex(len(data))[2:].zfill(4)
+        return self.request.sendall(bytes.fromhex(sz) + data)
 
 
-while 1:
-    data, addr = sock.recvfrom(512)
-    ADDR, PORT = addr
+class UDPRequestHandler(BaseRequestHandler):
+
+    def get_data(self):
+        return self.request[0].strip()
+
+    def send_data(self, data):
+        return self.request[1].sendto(data, self.client_address)
+
+
+if __name__ == '__main__':
+    print("DNS server warming up!")
+
+    servers = [
+        SocketServer.ThreadingUDPServer(('', port), UDPRequestHandler),
+        SocketServer.ThreadingTCPServer(('', port), TCPRequestHandler),
+    ]
+    for s in servers:
+        thread = threading.Thread(target=s.serve_forever)  # that thread will start one more thread for each request
+        thread.daemon = True  # exit the server thread when the main thread terminates
+        thread.start()
+        print("%s server loop running in thread: %s" % (s.RequestHandlerClass.__name__[:3], thread.name))
+
     try:
-        r = buildresponse(data)
-        sock.sendto(r, addr)
-    except Exception as e:
-        print(f'An exception happened, yes this server isn\'t perfect :D {e}')
+        while 1:
+            time.sleep(1)
+            sys.stderr.flush()
+            sys.stdout.flush()
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        for s in servers:
+            s.shutdown()

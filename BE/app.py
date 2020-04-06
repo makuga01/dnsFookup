@@ -54,6 +54,9 @@ import models, resources, dns_resources
 api.add_resource(resources.UserRegistration, '/auth/signup')
 api.add_resource(resources.UserLogin, '/auth/login')
 api.add_resource(resources.UserLogoutAccess, '/auth/logout')
+api.add_resource(resources.ChangePw, '/auth/change_pw')
+
+api.add_resource(dns_resources.iDontWannaBeAnymore, '/auth/delete_me')
 
 api.add_resource(dns_resources.CreateRebindToken, '/api/fookup/new')
 api.add_resource(dns_resources.DeleteUUID, '/api/fookup/delete')
