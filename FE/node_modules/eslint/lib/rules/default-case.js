@@ -4,7 +4,7 @@
  */
 "use strict";
 
-const DEFAULT_COMMENT_PATTERN = /^no default$/i;
+const DEFAULT_COMMENT_PATTERN = /^no default$/iu;
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -12,10 +12,13 @@ const DEFAULT_COMMENT_PATTERN = /^no default$/i;
 
 module.exports = {
     meta: {
+        type: "suggestion",
+
         docs: {
             description: "require `default` cases in `switch` statements",
             category: "Best Practices",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/default-case"
         },
 
         schema: [{
@@ -26,13 +29,17 @@ module.exports = {
                 }
             },
             additionalProperties: false
-        }]
+        }],
+
+        messages: {
+            missingDefaultCase: "Expected a default case."
+        }
     },
 
     create(context) {
         const options = context.options[0] || {};
         const commentPattern = options.commentPattern
-            ? new RegExp(options.commentPattern)
+            ? new RegExp(options.commentPattern, "u")
             : DEFAULT_COMMENT_PATTERN;
 
         const sourceCode = context.getSourceCode();
@@ -74,14 +81,14 @@ module.exports = {
                     let comment;
 
                     const lastCase = last(node.cases);
-                    const comments = sourceCode.getComments(lastCase).trailing;
+                    const comments = sourceCode.getCommentsAfter(lastCase);
 
                     if (comments.length) {
                         comment = last(comments);
                     }
 
                     if (!comment || !commentPattern.test(comment.value.trim())) {
-                        context.report({ node, message: "Expected a default case." });
+                        context.report({ node, messageId: "missingDefaultCase" });
                     }
                 }
             }

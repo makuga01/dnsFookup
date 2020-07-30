@@ -1,6 +1,8 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
 var _has = require('has');
 
@@ -14,21 +16,24 @@ var _postcssValueParser = require('postcss-value-parser');
 
 var _postcssValueParser2 = _interopRequireDefault(_postcssValueParser);
 
+var _cssnanoUtilGetMatch = require('cssnano-util-get-match');
+
+var _cssnanoUtilGetMatch2 = _interopRequireDefault(_cssnanoUtilGetMatch);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function getValues(list, _ref, index) {
-    var value = _ref.value;
-
+function getValues(list, { value }, index) {
     if (index % 2 === 0) {
-        return [].concat(list, [parseFloat(value)]);
+        return [...list, parseFloat(value)];
     }
+
     return list;
 }
 
 function matrix3d(node, values) {
     // matrix3d(a, b, 0, 0, c, d, 0, 0, 0, 0, 1, 0, tx, ty, 0, 1) => matrix(a, b, c, d, tx, ty)
     if (values[15] && values[2] === 0 && values[3] === 0 && values[6] === 0 && values[7] === 0 && values[8] === 0 && values[9] === 0 && values[10] === 1 && values[11] === 0 && values[14] === 0 && values[15] === 1) {
-        var nodes = node.nodes;
+        const { nodes } = node;
 
         node.value = 'matrix';
         node.nodes = [nodes[0], // a
@@ -45,27 +50,18 @@ function matrix3d(node, values) {
     }
 }
 
-var rotate3dMappings = [['rotateX', [1, 0, 0]], // rotate3d(1, 0, 0, a) => rotateX(a)
+const rotate3dMappings = [['rotateX', [1, 0, 0]], // rotate3d(1, 0, 0, a) => rotateX(a)
 ['rotateY', [0, 1, 0]], // rotate3d(0, 1, 0, a) => rotateY(a)
 ['rotate', [0, 0, 1]]];
 
-function rotate3dMatch(values) {
-    return values.reduce(function (list, arg, i) {
-        return list.filter(function (value) {
-            return value[1][i] === arg;
-        });
-    }, rotate3dMappings);
-}
+const rotate3dMatch = (0, _cssnanoUtilGetMatch2.default)(rotate3dMappings);
 
 function rotate3d(node, values) {
-    var nodes = node.nodes;
+    const { nodes } = node;
+    const match = rotate3dMatch(values.slice(0, 3));
 
-    if (!nodes[6]) {
-        return;
-    }
-    var match = rotate3dMatch(values.slice(0, 3));
     if (match.length) {
-        node.value = match[0][0];
+        node.value = match;
         node.nodes = [nodes[6]];
     }
 }
@@ -76,117 +72,148 @@ function rotateZ(node) {
 }
 
 function scale(node, values) {
-    var nodes = node.nodes;
+    const { nodes } = node;
 
     if (!nodes[2]) {
         return;
     }
-    var first = values[0];
-    var second = values[1];
-    // scale(sx, sy) => scale(sx)
 
+    const [first, second] = values;
+
+    // scale(sx, sy) => scale(sx)
     if (first === second) {
         node.nodes = [nodes[0]];
+
         return;
     }
+
     // scale(sx, 1) => scaleX(sx)
     if (second === 1) {
         node.value = 'scaleX';
         node.nodes = [nodes[0]];
+
         return;
     }
+
     // scale(1, sy) => scaleY(sy)
     if (first === 1) {
         node.value = 'scaleY';
         node.nodes = [nodes[2]];
+
         return;
     }
 }
 
 function scale3d(node, values) {
-    var nodes = node.nodes;
+    const { nodes } = node;
+    const [first, second, third] = values;
 
-    if (!nodes[4]) {
-        return;
-    }
-    var first = values[0];
-    var second = values[1];
-    var third = values[2];
     // scale3d(sx, 1, 1) => scaleX(sx)
-
     if (second === 1 && third === 1) {
         node.value = 'scaleX';
         node.nodes = [nodes[0]];
+
         return;
     }
+
     // scale3d(1, sy, 1) => scaleY(sy)
     if (first === 1 && third === 1) {
         node.value = 'scaleY';
         node.nodes = [nodes[2]];
+
         return;
     }
+
     // scale3d(1, 1, sz) => scaleZ(sz)
     if (first === 1 && second === 1) {
         node.value = 'scaleZ';
         node.nodes = [nodes[4]];
+
         return;
     }
 }
 
 function translate(node, values) {
-    var nodes = node.nodes;
+    const { nodes } = node;
 
     if (!nodes[2]) {
         return;
     }
+
     // translate(tx, 0) => translate(tx)
     if (values[1] === 0) {
         node.nodes = [nodes[0]];
+
         return;
     }
+
     // translate(0, ty) => translateY(ty)
     if (values[0] === 0) {
         node.value = 'translateY';
         node.nodes = [nodes[2]];
+
         return;
     }
 }
 
 function translate3d(node, values) {
-    var nodes = node.nodes;
-    // translate3d(0, 0, tz) => translateZ(tz)
+    const { nodes } = node;
 
-    if (nodes[4] && values[0] === 0 && values[1] === 0) {
+    // translate3d(0, 0, tz) => translateZ(tz)
+    if (values[0] === 0 && values[1] === 0) {
         node.value = 'translateZ';
         node.nodes = [nodes[4]];
     }
 }
 
-var reducers = {
-    matrix3d: matrix3d,
-    rotate3d: rotate3d,
-    rotateZ: rotateZ,
-    scale: scale,
-    scale3d: scale3d,
-    translate: translate,
-    translate3d: translate3d
+const reducers = {
+    matrix3d,
+    rotate3d,
+    rotateZ,
+    scale,
+    scale3d,
+    translate,
+    translate3d
 };
 
-function reduce(node) {
-    var nodes = node.nodes;
-    var type = node.type;
-    var value = node.value;
+function normalizeReducerName(name) {
+    const lowerCasedName = name.toLowerCase();
 
-    if (type === 'function' && (0, _has2.default)(reducers, value)) {
-        reducers[value](node, nodes.reduce(getValues, []));
+    if (lowerCasedName === 'rotatez') {
+        return 'rotateZ';
     }
+
+    return lowerCasedName;
+}
+
+function reduce(node) {
+    const { nodes, type, value } = node;
+    const normalizedReducerName = normalizeReducerName(value);
+
+    if (type === 'function' && (0, _has2.default)(reducers, normalizedReducerName)) {
+        reducers[normalizedReducerName](node, nodes.reduce(getValues, []));
+    }
+
     return false;
 }
 
-exports.default = _postcss2.default.plugin('postcss-reduce-transforms', function () {
-    return function (css) {
-        css.walkDecls(/transform$/, function (decl) {
-            decl.value = (0, _postcssValueParser2.default)(decl.value).walk(reduce).toString();
+exports.default = _postcss2.default.plugin('postcss-reduce-transforms', () => {
+    return css => {
+        const cache = {};
+
+        css.walkDecls(/transform$/i, decl => {
+            const value = decl.value;
+
+            if (cache[value]) {
+                decl.value = cache[value];
+
+                return;
+            }
+
+            const result = (0, _postcssValueParser2.default)(value).walk(reduce).toString();
+
+            decl.value = result;
+            cache[value] = result;
         });
     };
 });

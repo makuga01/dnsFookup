@@ -1,7 +1,6 @@
 'use strict';
 
 var EOL = require('os').EOL,
-    EXTEND = require('whet.extend'),
     textElem = require('../../plugins/_collections.js').elemsGroups.textContent.concat('title');
 
 var defaults = {
@@ -56,15 +55,14 @@ module.exports = function(data, config) {
 function JS2SVG(config) {
 
     if (config) {
-        this.config = EXTEND(true, {}, defaults, config);
+        this.config = Object.assign({}, defaults, config);
     } else {
-        this.config = defaults;
+        this.config = Object.assign({}, defaults);
     }
 
     var indent = this.config.indent;
     if (typeof indent == 'number' && !isNaN(indent)) {
-        this.config.indent = '';
-        for (var i = indent; i-- > 0;) this.config.indent += ' ';
+        this.config.indent = (indent < 0) ? '\t' : ' '.repeat(indent);
     } else if (typeof indent != 'string') {
         this.config.indent = '    ';
     }
@@ -146,9 +144,7 @@ JS2SVG.prototype.createIndent = function() {
     var indent = '';
 
     if (this.config.pretty && !this.textContext) {
-        for (var i = 1; i < this.indentLevel; i++) {
-            indent += this.config.indent;
-        }
+        indent = this.config.indent.repeat(this.indentLevel - 1);
     }
 
     return indent;

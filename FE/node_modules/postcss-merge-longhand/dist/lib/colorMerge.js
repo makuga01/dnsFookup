@@ -1,6 +1,8 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 exports.default = colorMerge;
 
 var _getDecls = require('./getDecls');
@@ -22,10 +24,8 @@ var _remove2 = _interopRequireDefault(_remove);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function getAllRules(props, properties) {
-    return properties.reduce(function (list, property) {
-        props.filter(function (n) {
-            return n.prop && ~n.prop.indexOf(property);
-        }).forEach(function (result, index) {
+    return properties.reduce((list, property) => {
+        props.filter(n => n.prop && ~n.prop.indexOf(property)).forEach((result, index) => {
             if (!list[index]) {
                 list.push([]);
             }
@@ -35,35 +35,22 @@ function getAllRules(props, properties) {
     }, [[]]);
 }
 
-function colorMerge(_ref) {
-    var rule = _ref.rule;
-    var properties = _ref.properties;
-    var prop = _ref.prop;
-    var value = _ref.value;
+function colorMerge({ rule, properties, prop, value }) {
+    let decls = (0, _getDecls2.default)(rule, properties);
 
-    var decls = (0, _getDecls2.default)(rule, properties);
-
-    var _loop = function _loop() {
-        var lastNode = decls[decls.length - 1];
-        var props = decls.filter(function (node) {
-            return node.important === lastNode.important;
-        });
-        if (_hasAllProps2.default.apply(undefined, [props].concat(properties))) {
-            getAllRules(props, properties).reverse().forEach(function (group) {
+    while (decls.length) {
+        const lastNode = decls[decls.length - 1];
+        const props = decls.filter(node => node.important === lastNode.important);
+        if ((0, _hasAllProps2.default)(props, ...properties)) {
+            getAllRules(props, properties).reverse().forEach(group => {
                 (0, _insertCloned2.default)(rule, lastNode, {
-                    prop: prop,
+                    prop,
                     value: value(group)
                 });
             });
             props.forEach(_remove2.default);
         }
-        decls = decls.filter(function (node) {
-            return !~props.indexOf(node);
-        });
-    };
-
-    while (decls.length) {
-        _loop();
+        decls = decls.filter(node => !~props.indexOf(node));
     }
 }
 module.exports = exports['default'];

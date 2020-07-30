@@ -6,16 +6,26 @@
 "use strict";
 
 //------------------------------------------------------------------------------
+// Requirements
+//------------------------------------------------------------------------------
+
+const astUtils = require("./utils/ast-utils");
+
+//------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
 
 module.exports = {
     meta: {
+        type: "suggestion",
+
         docs: {
             description: "enforce that class methods utilize `this`",
             category: "Best Practices",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/class-methods-use-this"
         },
+
         schema: [{
             type: "object",
             properties: {
@@ -27,10 +37,14 @@ module.exports = {
                 }
             },
             additionalProperties: false
-        }]
+        }],
+
+        messages: {
+            missingThis: "Expected 'this' to be used by class {{name}}."
+        }
     },
     create(context) {
-        const config = context.options[0] ? Object.assign({}, context.options[0]) : {};
+        const config = Object.assign({}, context.options[0]);
         const exceptMethods = new Set(config.exceptMethods || []);
 
         const stack = [];
@@ -47,7 +61,7 @@ module.exports = {
 
         /**
          * Check if the node is an instance method
-         * @param {ASTNode} node - node to check
+         * @param {ASTNode} node node to check
          * @returns {boolean} True if its an instance method
          * @private
          */
@@ -57,19 +71,20 @@ module.exports = {
 
         /**
          * Check if the node is an instance method not excluded by config
-         * @param {ASTNode} node - node to check
+         * @param {ASTNode} node node to check
          * @returns {boolean} True if it is an instance method, and not excluded by config
          * @private
          */
         function isIncludedInstanceMethod(node) {
-            return isInstanceMethod(node) && !exceptMethods.has(node.key.name);
+            return isInstanceMethod(node) &&
+                (node.computed || !exceptMethods.has(node.key.name));
         }
 
         /**
          * Checks if we are leaving a function that is a method, and reports if 'this' has not been used.
          * Static methods and the constructor are exempt.
          * Then pops the context off the stack.
-         * @param {ASTNode} node - A function node that was entered.
+         * @param {ASTNode} node A function node that was entered.
          * @returns {void}
          * @private
          */
@@ -79,9 +94,9 @@ module.exports = {
             if (isIncludedInstanceMethod(node.parent) && !methodUsesThis) {
                 context.report({
                     node,
-                    message: "Expected 'this' to be used by class method '{{classMethod}}'.",
+                    messageId: "missingThis",
                     data: {
-                        classMethod: node.parent.key.name
+                        name: astUtils.getFunctionNameWithKind(node)
                     }
                 });
             }

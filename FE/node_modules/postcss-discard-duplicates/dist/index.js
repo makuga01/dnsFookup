@@ -1,6 +1,8 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
 var _postcss = require('postcss');
 
@@ -11,9 +13,7 @@ function trimValue(value) {
 }
 
 function empty(node) {
-    return !node.nodes.filter(function (child) {
-        return child.type !== 'comment';
-    }).length;
+    return !node.nodes.filter(child => child.type !== 'comment').length;
 }
 
 function equals(a, b) {
@@ -64,7 +64,7 @@ function equals(a, b) {
             return false;
         }
 
-        for (var i = 0; i < a.nodes.length; i++) {
+        for (let i = 0; i < a.nodes.length; i++) {
             if (!equals(a.nodes[i], b.nodes[i])) {
                 return false;
             }
@@ -74,12 +74,11 @@ function equals(a, b) {
 }
 
 function dedupeRule(last, nodes) {
-    var index = nodes.indexOf(last) - 1;
-
-    var _loop = function _loop() {
-        var node = nodes[index--];
+    let index = nodes.indexOf(last) - 1;
+    while (index >= 0) {
+        const node = nodes[index--];
         if (node && node.type === 'rule' && node.selector === last.selector) {
-            last.each(function (child) {
+            last.each(child => {
                 if (child.type === 'decl') {
                     dedupeNode(child, node.nodes);
                 }
@@ -89,25 +88,21 @@ function dedupeRule(last, nodes) {
                 node.remove();
             }
         }
-    };
-
-    while (index >= 0) {
-        _loop();
     }
 }
 
 function dedupeNode(last, nodes) {
-    var index = !!~nodes.indexOf(last) ? nodes.indexOf(last) - 1 : nodes.length - 1;
+    let index = !!~nodes.indexOf(last) ? nodes.indexOf(last) - 1 : nodes.length - 1;
 
     while (index >= 0) {
-        var _node = nodes[index--];
-        if (_node && equals(_node, last)) {
-            _node.remove();
+        const node = nodes[index--];
+        if (node && equals(node, last)) {
+            node.remove();
         }
     }
 }
 
-var handlers = {
+const handlers = {
     rule: dedupeRule,
     atrule: dedupeNode,
     decl: dedupeNode,
@@ -115,15 +110,15 @@ var handlers = {
 };
 
 function dedupe(root) {
-    var nodes = root.nodes;
+    const { nodes } = root;
 
     if (!nodes) {
         return;
     }
 
-    var index = nodes.length - 1;
+    let index = nodes.length - 1;
     while (index >= 0) {
-        var last = nodes[index--];
+        let last = nodes[index--];
         if (!last || !last.parent) {
             continue;
         }
@@ -132,7 +127,5 @@ function dedupe(root) {
     }
 }
 
-exports.default = (0, _postcss.plugin)('postcss-discard-duplicates', function () {
-    return dedupe;
-});
+exports.default = (0, _postcss.plugin)('postcss-discard-duplicates', () => dedupe);
 module.exports = exports['default'];

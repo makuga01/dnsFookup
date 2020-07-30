@@ -1,4 +1,4 @@
-# [postcss][postcss]-discard-empty [![Build Status](https://travis-ci.org/ben-eb/postcss-discard-empty.svg?branch=master)][ci] [![NPM version](https://badge.fury.io/js/postcss-discard-empty.svg)][npm] [![Dependency Status](https://gemnasium.com/ben-eb/postcss-discard-empty.svg)][deps]
+# [postcss][postcss]-discard-empty
 
 > Discard empty rules and values with PostCSS.
 
@@ -12,7 +12,7 @@ npm install postcss-discard-empty --save
 
 ## Example
 
-For more examples see the [tests](test.js).
+For more examples see the [tests](src/__tests__/index.js).
 
 ### Input
 
@@ -35,16 +35,15 @@ h3 {color:red}
 See the [PostCSS documentation](https://github.com/postcss/postcss#usage) for
 examples for your environment.
 
-## Contributing
 
-Pull requests are welcome. If you add functionality, then please add unit tests
-to cover it.
+## Contributors
+
+See [CONTRIBUTORS.md](https://github.com/cssnano/cssnano/blob/master/CONTRIBUTORS.md).
+
 
 ## License
 
 MIT © [Ben Briggs](http://beneb.info)
 
-[ci]:      https://travis-ci.org/ben-eb/postcss-discard-empty
-[deps]:    https://gemnasium.com/ben-eb/postcss-discard-empty
-[npm]:     http://badge.fury.io/js/postcss-discard-empty
+
 [postcss]: https://github.com/postcss/postcss

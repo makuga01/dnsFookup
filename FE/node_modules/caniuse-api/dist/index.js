@@ -13,16 +13,13 @@ var _browserslist = require("browserslist");
 
 var _browserslist2 = _interopRequireDefault(_browserslist);
 
+var _caniuseLite = require("caniuse-lite");
+
 var _utils = require("./utils");
-
-var _data = require("caniuse-db/data.json");
-
-var _data2 = _interopRequireDefault(_data);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var features = _data2.default.data;
-var featuresList = Object.keys(features);
+var featuresList = Object.keys(_caniuseLite.features);
 
 var browsers = void 0;
 function setBrowserScope(browserList) {
@@ -33,14 +30,14 @@ function getBrowserScope() {
   return browsers;
 }
 
-var parse = (0, _lodash2.default)(_utils.parseCaniuseData, function (feature, browsers) {
-  return feature.title + browsers;
+var parse = (0, _lodash2.default)(_utils.parseCaniuseData, function (feat, browsers) {
+  return feat.title + browsers;
 });
 
 function getSupport(query) {
   var feature = void 0;
   try {
-    feature = features[query];
+    feature = (0, _caniuseLite.feature)(_caniuseLite.features[query]);
   } catch (e) {
     var res = find(query);
     if (res.length === 1) return getSupport(res[0]);
@@ -52,17 +49,17 @@ function getSupport(query) {
 function isSupported(feature, browsers) {
   var data = void 0;
   try {
-    data = features[feature];
+    data = (0, _caniuseLite.feature)(_caniuseLite.features[feature]);
   } catch (e) {
     var res = find(feature);
     if (res.length === 1) {
-      data = features[res[0]];
+      data = _caniuseLite.features[res[0]];
     } else {
       throw new ReferenceError("Please provide a proper feature name. Cannot find " + feature);
     }
   }
 
-  return (0, _browserslist2.default)(browsers).map(function (browser) {
+  return (0, _browserslist2.default)(browsers, { ignoreUnknownVersions: true }).map(function (browser) {
     return browser.split(" ");
   }).every(function (browser) {
     return data.stats[browser[0]] && data.stats[browser[0]][browser[1]] === "y";
@@ -85,7 +82,7 @@ function find(query) {
 }
 
 function getLatestStableBrowsers() {
-  return _browserslist2.default.queries.lastVersions.select(1);
+  return (0, _browserslist2.default)("last 1 version");
 }
 
 setBrowserScope();

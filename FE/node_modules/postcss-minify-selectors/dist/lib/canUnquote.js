@@ -1,6 +1,8 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 exports.default = canUnquote;
 
 var _unquote = require('./unquote');
@@ -14,8 +16,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * Copyright Mathias Bynens <https://mathiasbynens.be/>
  * https://github.com/mathiasbynens/mothereff.in
  */
-var escapes = /\\([0-9A-Fa-f]{1,6})[ \t\n\f\r]?/g;
-var range = /[\u0000-\u002c\u002e\u002f\u003A-\u0040\u005B-\u005E\u0060\u007B-\u009f]/;
+const escapes = /\\([0-9A-Fa-f]{1,6})[ \t\n\f\r]?/g;
+const range = /[\u0000-\u002c\u002e\u002f\u003A-\u0040\u005B-\u005E\u0060\u007B-\u009f]/;
 
 function canUnquote(value) {
     value = (0, _unquote2.default)(value);

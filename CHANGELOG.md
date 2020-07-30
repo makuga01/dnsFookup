@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (at least tries to).
 
+## [2.0.1] - 30. July 2020
+
+### Added
+
+- FE
+  - .env.production and .env.development for easier configuration
+
+### Changed
+
+- FE
+  - Updated node modules + fix newly-born not-working code
+  - Deleted buggy/unnecessary "Create new bin" button from dashboard
+
+- API
+  - fixed pagination of logs - now sorting by time!
+  - uWsgi files
 
 ## [2.0.0] - 6. April 2020
 

@@ -6,19 +6,33 @@
 "use strict";
 
 //------------------------------------------------------------------------------
+// Requirements
+//------------------------------------------------------------------------------
+
+const FixTracker = require("./utils/fix-tracker");
+const astUtils = require("./utils/ast-utils");
+
+//------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
 
 module.exports = {
     meta: {
+        type: "suggestion",
+
         docs: {
             description: "disallow unnecessary semicolons",
             category: "Possible Errors",
-            recommended: true
+            recommended: true,
+            url: "https://eslint.org/docs/rules/no-extra-semi"
         },
 
         fixable: "code",
-        schema: []
+        schema: [],
+
+        messages: {
+            unexpected: "Unnecessary semicolon."
+        }
     },
 
     create(context) {
@@ -26,15 +40,23 @@ module.exports = {
 
         /**
          * Reports an unnecessary semicolon error.
-         * @param {Node|Token} nodeOrToken - A node or a token to be reported.
+         * @param {Node|Token} nodeOrToken A node or a token to be reported.
          * @returns {void}
          */
         function report(nodeOrToken) {
             context.report({
                 node: nodeOrToken,
-                message: "Unnecessary semicolon.",
+                messageId: "unexpected",
                 fix(fixer) {
-                    return fixer.remove(nodeOrToken);
+
+                    /*
+                     * Expand the replacement range to include the surrounding
+                     * tokens to avoid conflicting with semi.
+                     * https://github.com/eslint/eslint/issues/7928
+                     */
+                    return new FixTracker(fixer, context.getSourceCode())
+                        .retainSurroundingTokens(nodeOrToken)
+                        .remove(nodeOrToken);
                 }
             });
         }
@@ -42,16 +64,15 @@ module.exports = {
         /**
          * Checks for a part of a class body.
          * This checks tokens from a specified token to a next MethodDefinition or the end of class body.
-         *
-         * @param {Token} firstToken - The first token to check.
+         * @param {Token} firstToken The first token to check.
          * @returns {void}
          */
         function checkForPartOfClassBody(firstToken) {
             for (let token = firstToken;
-                token.type === "Punctuator" && token.value !== "}";
+                token.type === "Punctuator" && !astUtils.isClosingBraceToken(token);
                 token = sourceCode.getTokenAfter(token)
             ) {
-                if (token.value === ";") {
+                if (astUtils.isSemicolonToken(token)) {
                     report(token);
                 }
             }
@@ -61,7 +82,7 @@ module.exports = {
 
             /**
              * Reports this empty statement, except if the parent node is a loop.
-             * @param {Node} node - A EmptyStatement node to be reported.
+             * @param {Node} node A EmptyStatement node to be reported.
              * @returns {void}
              */
             EmptyStatement(node) {
@@ -84,7 +105,7 @@ module.exports = {
 
             /**
              * Checks tokens from the head of this class body to the first MethodDefinition or the end of this class body.
-             * @param {Node} node - A ClassBody node to check.
+             * @param {Node} node A ClassBody node to check.
              * @returns {void}
              */
             ClassBody(node) {
@@ -93,7 +114,7 @@ module.exports = {
 
             /**
              * Checks tokens from this MethodDefinition to the next MethodDefinition or the end of this class body.
-             * @param {Node} node - A MethodDefinition node of the start point.
+             * @param {Node} node A MethodDefinition node of the start point.
              * @returns {void}
              */
             MethodDefinition(node) {

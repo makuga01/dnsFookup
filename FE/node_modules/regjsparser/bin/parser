@@ -2,17 +2,21 @@
 (function() {
 
   var fs = require('fs');
+  var path = require('path');
   var parse = require('../parser').parse;
   var jsesc = require('jsesc');
   var regexes = process.argv.splice(2);
   var first = regexes[0];
   var data;
   var log = console.log;
+  var flags = '';
   var main = function() {
     if (/^(?:-h|--help|undefined)$/.test(first)) {
       log([
         '\nUsage:\n',
         '\tregjsparser [regex ...]',
+        '\tregjsparser [-f | --flags] u [regex ...]',
+        '\tregjsparser [-v | --version]',
         '\tregjsparser [-h | --help]',
         '\nExamples:\n',
         '\tregjsparser \'^foo.bar$\'',
@@ -21,10 +25,19 @@
       return process.exit(1);
     }
 
+    if (/^(?:-v|--version)$/.test(first)) {
+      log('v%s', require(path.resolve(__dirname, '../package.json')).version);
+      return process.exit(1);
+    }
+
+    if (/^(?:-f|--flags)$/.test(first)) {
+      flags = regexes[1];
+      regexes = regexes.slice(2);
+    }
+
     regexes.forEach(function(snippet) {
-      var result;
       try {
-        result = parse(snippet);
+        result = parse(snippet, flags);
         log(jsesc(result, {
           'json': true,
           'compact': false,

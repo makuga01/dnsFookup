@@ -28,11 +28,17 @@ Pass arbitrary values between your module files
 ```css
 /* my-component.css */
 /* alias paths for other values or composition */
-@value colors: "./colors.css"; 
+@value colors: "./colors.css";
 /* import multiple from a single file */
 @value primary, secondary from colors;
 /* make local aliases to imported values */
 @value small as bp-small, large as bp-large from "./breakpoints.css";
+/* value as selector name */
+@value selectorValue: secondary-color;
+
+.selectorValue {
+  color: secondary;
+}
 
 .header {
   composes: text-primary from colors;
@@ -74,4 +80,5 @@ ISC
 - Josh Johnston
 
 ---
+
 Glen Maddern, 2015.

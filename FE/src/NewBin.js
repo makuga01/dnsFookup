@@ -220,7 +220,7 @@ class NewBin extends Component {
       body: JSON.stringify(new_bin)
   };
 
-  fetch("http://rbnd.gl0.eu:5000/api/fookup/new", obj)
+  fetch(process.env.REACT_APP_API+"/api/fookup/new", obj)
       .then(res => res.json())
       .then(data => {
           if (data.subdomain != null) {

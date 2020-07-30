@@ -1,6 +1,6 @@
 'use strict';
 
-// http://www.w3.org/TR/SVG/intro.html#Definitions
+// http://www.w3.org/TR/SVG11/intro.html#Definitions
 exports.elemsGroups = {
     animation: ['animate', 'animateColor', 'animateMotion', 'animateTransform', 'set'],
     descriptive: ['desc', 'metadata', 'title'],
@@ -17,7 +17,7 @@ exports.elemsGroups = {
 
 exports.pathElems = ['path', 'glyph', 'missing-glyph'];
 
-// http://www.w3.org/TR/SVG/intro.html#Definitions
+// http://www.w3.org/TR/SVG11/intro.html#Definitions
 exports.attrsGroups = {
     animationAddition: ['additive', 'accumulate'],
     animationAttributeTarget: ['attributeType', 'attributeName'],
@@ -30,7 +30,6 @@ exports.attrsGroups = {
     presentation: [
         'alignment-baseline',
         'baseline-shift',
-        'buffered-rendering',
         'clip',
         'clip-path',
         'clip-rule',
@@ -60,7 +59,6 @@ exports.attrsGroups = {
         'glyph-orientation-horizontal',
         'glyph-orientation-vertical',
         'image-rendering',
-        'kerning',
         'letter-spacing',
         'lighting-color',
         'marker-end',
@@ -69,10 +67,9 @@ exports.attrsGroups = {
         'mask',
         'opacity',
         'overflow',
+        'paint-order',
         'pointer-events',
         'shape-rendering',
-        'solid-color',
-        'solid-opacity',
         'stop-color',
         'stop-opacity',
         'stroke',
@@ -83,18 +80,14 @@ exports.attrsGroups = {
         'stroke-miterlimit',
         'stroke-opacity',
         'stroke-width',
-        'paint-order',
         'text-anchor',
         'text-decoration',
         'text-overflow',
-        'white-space',
         'text-rendering',
+        'transform',
         'unicode-bidi',
         'vector-effect',
-        'viewport-fill',
-        'viewport-fill-opacity',
         'visibility',
-        'white-space',
         'word-spacing',
         'writing-mode'
     ],
@@ -113,8 +106,6 @@ exports.attrsGroupsDefaults = {
         'clip-rule': 'nonzero',
         mask: 'none',
         opacity: '1',
-        'solid-color': '#000',
-        'solid-opacity': '1',
         'stop-color': '#000',
         'stop-opacity': '1',
         'fill-opacity': '1',
@@ -130,8 +121,6 @@ exports.attrsGroupsDefaults = {
         'stroke-opacity': '1',
         'paint-order': 'normal',
         'vector-effect': 'none',
-        'viewport-fill': 'none',
-        'viewport-fill-opacity': '1',
         display: 'inline',
         visibility: 'visible',
         'marker-start': 'none',
@@ -143,7 +132,6 @@ exports.attrsGroupsDefaults = {
         'shape-rendering': 'auto',
         'text-rendering': 'auto',
         'image-rendering': 'auto',
-        'buffered-rendering': 'auto',
         'font-style': 'normal',
         'font-variant': 'normal',
         'font-weight': 'normal',
@@ -168,7 +156,7 @@ exports.attrsGroupsDefaults = {
     transferFunction: {slope: '1', intercept: '0', amplitude: '1', exponent: '1', offset: '0'}
 };
 
-// http://www.w3.org/TR/SVG/eltindex.html
+// http://www.w3.org/TR/SVG11/eltindex.html
 exports.elems = {
     a: {
         attrsGroups: [
@@ -788,6 +776,7 @@ exports.elems = {
             'style',
             'externalResourcesRequired',
             'preserveAspectRatio',
+            'href',
             'xlink:href'
         ],
         defaults: {
@@ -1002,6 +991,7 @@ exports.elems = {
             'filterRes',
             'filterUnits',
             'primitiveUnits',
+            'href',
             'xlink:href'
         ],
         defaults: {
@@ -1140,6 +1130,7 @@ exports.elems = {
             'xlink'
         ],
         attrs: [
+            'href',
             'xlink:href'
         ],
         content: [
@@ -1384,6 +1375,7 @@ exports.elems = {
             'y',
             'width',
             'height',
+            'href',
             'xlink:href'
         ],
         defaults: {
@@ -1441,6 +1433,7 @@ exports.elems = {
             'gradientUnits',
             'gradientTransform',
             'spreadMethod',
+            'href',
             'xlink:href'
         ],
         defaults: {
@@ -1620,6 +1613,7 @@ exports.elems = {
         ],
         attrs: [
             'externalResourcesRequired',
+            'href',
             'xlink:href'
         ],
         contentGroups: [
@@ -1666,6 +1660,7 @@ exports.elems = {
             'patternUnits',
             'patternContentUnits',
             'patternTransform',
+            'href',
             'xlink:href'
         ],
         defaults: {
@@ -1762,6 +1757,7 @@ exports.elems = {
             'gradientUnits',
             'gradientTransform',
             'spreadMethod',
+            'href',
             'xlink:href'
         ],
         defaults: {
@@ -1871,6 +1867,7 @@ exports.elems = {
         attrs: [
             'externalResourcesRequired',
             'type',
+            'href',
             'xlink:href'
         ]
     },
@@ -2119,6 +2116,7 @@ exports.elems = {
             'class',
             'style',
             'externalResourcesRequired',
+            'href',
             'xlink:href',
             'startOffset',
             'method',
@@ -2164,6 +2162,7 @@ exports.elems = {
             'class',
             'style',
             'externalResourcesRequired',
+            'href',
             'xlink:href'
         ],
         contentGroups: [
@@ -2224,6 +2223,7 @@ exports.elems = {
             'y',
             'width',
             'height',
+            'href',
             'xlink:href'
         ],
         defaults: {
@@ -2279,10 +2279,18 @@ exports.editorNamespaces = [
     'http://ns.adobe.com/Flows/1.0/',
     'http://ns.adobe.com/ImageReplacement/1.0/',
     'http://ns.adobe.com/GenericCustomNamespace/1.0/',
-    'http://ns.adobe.com/XPath/1.0/'
+    'http://ns.adobe.com/XPath/1.0/',
+    'http://schemas.microsoft.com/visio/2003/SVGExtensions/',
+    'http://taptrix.com/vectorillustrator/svg_extensions',
+    'http://www.figma.com/figma/ns',
+    'http://purl.org/dc/elements/1.1/',
+    'http://creativecommons.org/ns#',
+    'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    'http://www.serif.com/',
+    'http://www.vector.evaxdesign.sk'
 ];
 
-// http://www.w3.org/TR/SVG/linking.html#processingIRI
+// http://www.w3.org/TR/SVG11/linking.html#processingIRI
 exports.referencesProps = [
     'clip-path',
     'color-profile',
@@ -2296,7 +2304,7 @@ exports.referencesProps = [
     'style'
 ];
 
-// http://www.w3.org/TR/SVG/propidx.html
+// http://www.w3.org/TR/SVG11/propidx.html
 exports.inheritableAttrs = [
     'clip-rule',
     'color',
@@ -2306,6 +2314,7 @@ exports.inheritableAttrs = [
     'color-rendering',
     'cursor',
     'direction',
+    'dominant-baseline',
     'fill',
     'fill-opacity',
     'fill-rule',
@@ -2320,12 +2329,12 @@ exports.inheritableAttrs = [
     'glyph-orientation-horizontal',
     'glyph-orientation-vertical',
     'image-rendering',
-    'kerning',
     'letter-spacing',
     'marker',
     'marker-end',
     'marker-mid',
     'marker-start',
+    'paint-order',
     'pointer-events',
     'shape-rendering',
     'stroke',
@@ -2340,12 +2349,23 @@ exports.inheritableAttrs = [
     'text-rendering',
     'transform',
     'visibility',
-    'white-space',
     'word-spacing',
     'writing-mode'
 ];
 
-// http://www.w3.org/TR/SVG/single-page.html#types-ColorKeywords
+exports.presentationNonInheritableGroupAttrs = [
+    'display',
+    'clip-path',
+    'filter',
+    'mask',
+    'opacity',
+    'text-decoration',
+    'transform',
+    'unicode-bidi',
+    'visibility'
+];
+
+// http://www.w3.org/TR/SVG11/single-page.html#types-ColorKeywords
 exports.colorsNames = {
     'aliceblue': '#f0f8ff',
     'antiquewhite': '#faebd7',
@@ -2373,6 +2393,7 @@ exports.colorsNames = {
     'darkgoldenrod': '#b8860b',
     'darkgray': '#a9a9a9',
     'darkgreen': '#006400',
+    'darkgrey': '#a9a9a9',
     'darkkhaki': '#bdb76b',
     'darkmagenta': '#8b008b',
     'darkolivegreen': '#556b2f',
@@ -2383,11 +2404,13 @@ exports.colorsNames = {
     'darkseagreen': '#8fbc8f',
     'darkslateblue': '#483d8b',
     'darkslategray': '#2f4f4f',
+    'darkslategrey': '#2f4f4f',
     'darkturquoise': '#00ced1',
     'darkviolet': '#9400d3',
     'deeppink': '#ff1493',
     'deepskyblue': '#00bfff',
     'dimgray': '#696969',
+    'dimgrey': '#696969',
     'dodgerblue': '#1e90ff',
     'firebrick': '#b22222',
     'floralwhite': '#fffaf0',
@@ -2400,6 +2423,7 @@ exports.colorsNames = {
     'gray': '#808080',
     'green': '#008000',
     'greenyellow': '#adff2f',
+    'grey': '#808080',
     'honeydew': '#f0fff0',
     'hotpink': '#ff69b4',
     'indianred': '#cd5c5c',
@@ -2414,6 +2438,7 @@ exports.colorsNames = {
     'lightcoral': '#f08080',
     'lightcyan': '#e0ffff',
     'lightgoldenrodyellow': '#fafad2',
+    'lightgray': '#d3d3d3',
     'lightgreen': '#90ee90',
     'lightgrey': '#d3d3d3',
     'lightpink': '#ffb6c1',
@@ -2421,6 +2446,7 @@ exports.colorsNames = {
     'lightseagreen': '#20b2aa',
     'lightskyblue': '#87cefa',
     'lightslategray': '#789',
+    'lightslategrey': '#789',
     'lightsteelblue': '#b0c4de',
     'lightyellow': '#ffffe0',
     'lime': '#0f0',
@@ -2460,6 +2486,7 @@ exports.colorsNames = {
     'plum': '#dda0dd',
     'powderblue': '#b0e0e6',
     'purple': '#800080',
+    'rebeccapurple': '#639',
     'red': '#f00',
     'rosybrown': '#bc8f8f',
     'royalblue': '#4169e1',
@@ -2473,6 +2500,7 @@ exports.colorsNames = {
     'skyblue': '#87ceeb',
     'slateblue': '#6a5acd',
     'slategray': '#708090',
+    'slategrey': '#708090',
     'snow': '#fffafa',
     'springgreen': '#00ff7f',
     'steelblue': '#4682b4',
@@ -2512,6 +2540,7 @@ exports.colorsShortNames = {
   '#dda0dd': 'plum',
   '#800080': 'purple',
   '#f00': 'red',
+  '#ff0000': 'red',
   '#fa8072': 'salmon',
   '#a0522d': 'sienna',
   '#c0c0c0': 'silver',
@@ -2523,7 +2552,7 @@ exports.colorsShortNames = {
   '#f5deb3': 'wheat'
 };
 
-// http://www.w3.org/TR/SVG/single-page.html#types-DataTypeColor
+// http://www.w3.org/TR/SVG11/single-page.html#types-DataTypeColor
 exports.colorsProps = [
     'color', 'fill', 'stroke', 'stop-color', 'flood-color', 'lighting-color'
 ];

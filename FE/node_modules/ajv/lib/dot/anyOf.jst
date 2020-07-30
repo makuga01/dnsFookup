@@ -35,12 +35,10 @@
   {{= $closingBraces }}
 
   if (!{{=$valid}}) {
-    {{# def.addError:'anyOf' }}
+    {{# def.extraError:'anyOf' }}
   } else {
     {{# def.resetErrors }}
   {{? it.opts.allErrors }} } {{?}}
-
-  {{# def.cleanUp }}
 {{??}}
   {{? $breakOnError }}
     if (true) {

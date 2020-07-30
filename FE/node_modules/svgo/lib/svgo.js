@@ -14,56 +14,62 @@ var CONFIG = require('./svgo/config.js'),
     SVG2JS = require('./svgo/svg2js.js'),
     PLUGINS = require('./svgo/plugins.js'),
     JSAPI = require('./svgo/jsAPI.js'),
+    encodeSVGDatauri = require('./svgo/tools.js').encodeSVGDatauri,
     JS2SVG = require('./svgo/js2svg.js');
 
-var SVGO = module.exports = function(config) {
-
+var SVGO = function(config) {
     this.config = CONFIG(config);
-
 };
 
-SVGO.prototype.optimize = function(svgstr, callback) {
-    if (this.config.error) return callback(this.config);
+SVGO.prototype.optimize = function(svgstr, info) {
+    info = info || {};
+    return new Promise((resolve, reject) => {
+        if (this.config.error) {
+            reject(this.config.error);
+            return;
+        }
 
-    var _this = this,
-        config = this.config,
-        maxPassCount = config.multipass ? 10 : 1,
-        counter = 0,
-        prevResultSize = Number.POSITIVE_INFINITY,
-        optimizeOnceCallback = function(svgjs) {
+        var config = this.config,
+            maxPassCount = config.multipass ? 10 : 1,
+            counter = 0,
+            prevResultSize = Number.POSITIVE_INFINITY,
+            optimizeOnceCallback = (svgjs) => {
+                if (svgjs.error) {
+                    reject(svgjs.error);
+                    return;
+                }
 
-            if (svgjs.error) {
-                callback(svgjs);
-                return;
-            }
+                info.multipassCount = counter;
+                if (++counter < maxPassCount && svgjs.data.length < prevResultSize) {
+                    prevResultSize = svgjs.data.length;
+                    this._optimizeOnce(svgjs.data, info, optimizeOnceCallback);
+                } else {
+                    if (config.datauri) {
+                        svgjs.data = encodeSVGDatauri(svgjs.data, config.datauri);
+                    }
+                    if (info && info.path) {
+                        svgjs.path = info.path;
+                    }
+                    resolve(svgjs);
+                }
+            };
 
-            if (++counter < maxPassCount && svgjs.data.length < prevResultSize) {
-                prevResultSize = svgjs.data.length;
-                _this._optimizeOnce(svgjs.data, optimizeOnceCallback);
-            } else {
-                callback(svgjs);
-            }
-
-        };
-
-    _this._optimizeOnce(svgstr, optimizeOnceCallback);
-
+        this._optimizeOnce(svgstr, info, optimizeOnceCallback);
+    });
 };
 
-SVGO.prototype._optimizeOnce = function(svgstr, callback) {
+SVGO.prototype._optimizeOnce = function(svgstr, info, callback) {
     var config = this.config;
 
     SVG2JS(svgstr, function(svgjs) {
-
         if (svgjs.error) {
             callback(svgjs);
             return;
         }
 
-        svgjs = PLUGINS(svgjs, config.plugins);
+        svgjs = PLUGINS(svgjs, info, config.plugins);
 
         callback(JS2SVG(svgjs, config.js2svg));
-
     });
 };
 
@@ -74,7 +80,11 @@ SVGO.prototype._optimizeOnce = function(svgstr, callback) {
  * @returns {JSAPI} content item
  */
 SVGO.prototype.createContentItem = function(data) {
-
     return new JSAPI(data);
-
 };
+
+SVGO.Config = CONFIG;
+
+module.exports = SVGO;
+// Offer ES module interop compatibility.
+module.exports.default = SVGO;

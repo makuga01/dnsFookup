@@ -11,24 +11,30 @@
 
 module.exports = {
     meta: {
+        type: "suggestion",
+
         docs: {
             description: "require `var` declarations be placed at the top of their containing scope",
             category: "Best Practices",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/vars-on-top"
         },
 
-        schema: []
+        schema: [],
+        messages: {
+            top: "All 'var' declarations must be at the top of the function scope."
+        }
     },
 
     create(context) {
-        const errorMessage = "All 'var' declarations must be at the top of the function scope.";
 
         //--------------------------------------------------------------------------
         // Helpers
         //--------------------------------------------------------------------------
 
+        // eslint-disable-next-line jsdoc/require-description
         /**
-         * @param {ASTNode} node - any node
+         * @param {ASTNode} node any node
          * @returns {boolean} whether the given node structurally represents a directive
          */
         function looksLikeDirective(node) {
@@ -38,7 +44,7 @@ module.exports = {
 
         /**
          * Check to see if its a ES6 import declaration
-         * @param {ASTNode} node - any node
+         * @param {ASTNode} node any node
          * @returns {boolean} whether the given node represents a import declaration
          */
         function looksLikeImport(node) {
@@ -48,8 +54,7 @@ module.exports = {
 
         /**
          * Checks whether a given node is a variable declaration or not.
-         *
-         * @param {ASTNode} node - any node
+         * @param {ASTNode} node any node
          * @returns {boolean} `true` if the node is a variable declaration.
          */
         function isVariableDeclaration(node) {
@@ -65,8 +70,8 @@ module.exports = {
 
         /**
          * Checks whether this variable is on top of the block body
-         * @param {ASTNode} node - The node to check
-         * @param {ASTNode[]} statements - collection of ASTNodes for the parent node block
+         * @param {ASTNode} node The node to check
+         * @param {ASTNode[]} statements collection of ASTNodes for the parent node block
          * @returns {boolean} True if var is on top otherwise false
          */
         function isVarOnTop(node, statements) {
@@ -94,28 +99,28 @@ module.exports = {
 
         /**
          * Checks whether variable is on top at the global level
-         * @param {ASTNode} node - The node to check
-         * @param {ASTNode} parent - Parent of the node
+         * @param {ASTNode} node The node to check
+         * @param {ASTNode} parent Parent of the node
          * @returns {void}
          */
         function globalVarCheck(node, parent) {
             if (!isVarOnTop(node, parent.body)) {
-                context.report({ node, message: errorMessage });
+                context.report({ node, messageId: "top" });
             }
         }
 
         /**
          * Checks whether variable is on top at functional block scope level
-         * @param {ASTNode} node - The node to check
-         * @param {ASTNode} parent - Parent of the node
-         * @param {ASTNode} grandParent - Parent of the node's parent
+         * @param {ASTNode} node The node to check
+         * @param {ASTNode} parent Parent of the node
+         * @param {ASTNode} grandParent Parent of the node's parent
          * @returns {void}
          */
         function blockScopeVarCheck(node, parent, grandParent) {
-            if (!(/Function/.test(grandParent.type) &&
+            if (!(/Function/u.test(grandParent.type) &&
                     parent.type === "BlockStatement" &&
                     isVarOnTop(node, parent.body))) {
-                context.report({ node, message: errorMessage });
+                context.report({ node, messageId: "top" });
             }
         }
 
@@ -124,23 +129,13 @@ module.exports = {
         //--------------------------------------------------------------------------
 
         return {
-            VariableDeclaration(node) {
-                const ancestors = context.getAncestors();
-                let parent = ancestors.pop();
-                let grandParent = ancestors.pop();
-
-                if (node.kind === "var") { // check variable is `var` type and not `let` or `const`
-                    if (parent.type === "ExportNamedDeclaration") {
-                        node = parent;
-                        parent = grandParent;
-                        grandParent = ancestors.pop();
-                    }
-
-                    if (parent.type === "Program") { // That means its a global variable
-                        globalVarCheck(node, parent);
-                    } else {
-                        blockScopeVarCheck(node, parent, grandParent);
-                    }
+            "VariableDeclaration[kind='var']"(node) {
+                if (node.parent.type === "ExportNamedDeclaration") {
+                    globalVarCheck(node.parent, node.parent.parent);
+                } else if (node.parent.type === "Program") {
+                    globalVarCheck(node, node.parent);
+                } else {
+                    blockScopeVarCheck(node, node.parent, node.parent.parent);
                 }
             }
         };

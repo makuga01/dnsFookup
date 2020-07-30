@@ -2,16 +2,26 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
-var EvalDevToolModuleTemplatePlugin = require("./EvalDevToolModuleTemplatePlugin");
+"use strict";
 
-function EvalDevToolModulePlugin(sourceUrlComment, moduleFilenameTemplate) {
-	this.sourceUrlComment = sourceUrlComment;
-	this.moduleFilenameTemplate = moduleFilenameTemplate;
+const EvalDevToolModuleTemplatePlugin = require("./EvalDevToolModuleTemplatePlugin");
+
+class EvalDevToolModulePlugin {
+	constructor(options) {
+		this.sourceUrlComment = options.sourceUrlComment;
+		this.moduleFilenameTemplate = options.moduleFilenameTemplate;
+		this.namespace = options.namespace;
+	}
+
+	apply(compiler) {
+		compiler.hooks.compilation.tap("EvalDevToolModulePlugin", compilation => {
+			new EvalDevToolModuleTemplatePlugin({
+				sourceUrlComment: this.sourceUrlComment,
+				moduleFilenameTemplate: this.moduleFilenameTemplate,
+				namespace: this.namespace
+			}).apply(compilation.moduleTemplates.javascript);
+		});
+	}
 }
+
 module.exports = EvalDevToolModulePlugin;
-EvalDevToolModulePlugin.prototype.apply = function(compiler) {
-	var self = this;
-	compiler.plugin("compilation", function(compilation) {
-		compilation.moduleTemplate.apply(new EvalDevToolModuleTemplatePlugin(self.sourceUrlComment, self.moduleFilenameTemplate));
-	});
-};

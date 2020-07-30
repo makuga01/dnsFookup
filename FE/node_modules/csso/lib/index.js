@@ -1,10 +1,7 @@
-var parse = require('./parser');
-var compress = require('./compressor');
-var translate = require('./utils/translate');
-var translateWithSourceMap = require('./utils/translateWithSourceMap');
-var walkers = require('./utils/walk');
-var clone = require('./utils/clone');
-var List = require('./utils/list');
+var csstree = require('css-tree');
+var parse = csstree.parse;
+var compress = require('./compress');
+var generate = csstree.generate;
 
 function debugOutput(name, options, startTime, data) {
     if (options.debug) {
@@ -25,7 +22,7 @@ function createDefaultLogger(level) {
         }
 
         if (level > 1 && ast) {
-            var css = translate(ast, true);
+            var css = generate(ast);
 
             // when level 2, limit css to 256 symbols
             if (level === 2 && css.length > 256) {
@@ -104,17 +101,17 @@ function minify(context, source, options) {
         );
     }
 
-    // translate
+    // generate
     if (options.sourceMap) {
-        result = debugOutput('translateWithSourceMap', options, Date.now(), (function() {
-            var tmp = translateWithSourceMap(compressResult.ast);
+        result = debugOutput('generate(sourceMap: true)', options, Date.now(), (function() {
+            var tmp = generate(compressResult.ast, { sourceMap: true });
             tmp.map._file = filename; // since other tools can relay on file in source map transform chain
             tmp.map.setSourceContent(filename, source);
             return tmp;
-        })());
+        }()));
     } else {
-        result = debugOutput('translate', options, Date.now(), {
-            css: translate(compressResult.ast),
+        result = debugOutput('generate', options, Date.now(), {
+            css: generate(compressResult.ast),
             map: null
         });
     }
@@ -124,33 +121,21 @@ function minify(context, source, options) {
 
 function minifyStylesheet(source, options) {
     return minify('stylesheet', source, options);
-};
+}
 
 function minifyBlock(source, options) {
-    return minify('block', source, options);
+    return minify('declarationList', source, options);
 }
 
 module.exports = {
     version: require('../package.json').version,
 
-    // classes
-    List: List,
-
     // main methods
     minify: minifyStylesheet,
     minifyBlock: minifyBlock,
 
-    // step by step
-    parse: parse,
-    compress: compress,
-    translate: translate,
-    translateWithSourceMap: translateWithSourceMap,
-
-    // walkers
-    walk: walkers.all,
-    walkRules: walkers.rules,
-    walkRulesRight: walkers.rulesRight,
-
-    // utils
-    clone: clone
+    // css syntax parser/walkers/generator/etc
+    syntax: Object.assign({
+        compress: compress
+    }, csstree)
 };

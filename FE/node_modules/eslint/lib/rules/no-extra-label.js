@@ -9,7 +9,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-const astUtils = require("../ast-utils");
+const astUtils = require("./utils/ast-utils");
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -17,15 +17,21 @@ const astUtils = require("../ast-utils");
 
 module.exports = {
     meta: {
+        type: "suggestion",
+
         docs: {
             description: "disallow unnecessary labels",
             category: "Best Practices",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/no-extra-label"
         },
 
         schema: [],
+        fixable: "code",
 
-        fixable: "code"
+        messages: {
+            unexpected: "This label '{{name}}' is unnecessary."
+        }
     },
 
     create(context) {
@@ -34,8 +40,7 @@ module.exports = {
 
         /**
          * Creates a new scope with a breakable statement.
-         *
-         * @param {ASTNode} node - A node to create. This is a BreakableStatement.
+         * @param {ASTNode} node A node to create. This is a BreakableStatement.
          * @returns {void}
          */
         function enterBreakableStatement(node) {
@@ -48,7 +53,6 @@ module.exports = {
 
         /**
          * Removes the top scope of the stack.
-         *
          * @returns {void}
          */
         function exitBreakableStatement() {
@@ -60,8 +64,7 @@ module.exports = {
          *
          * This ignores it if the body is a breakable statement.
          * In this case it's handled in the `enterBreakableStatement` function.
-         *
-         * @param {ASTNode} node - A node to create. This is a LabeledStatement.
+         * @param {ASTNode} node A node to create. This is a LabeledStatement.
          * @returns {void}
          */
         function enterLabeledStatement(node) {
@@ -79,8 +82,7 @@ module.exports = {
          *
          * This ignores it if the body is a breakable statement.
          * In this case it's handled in the `exitBreakableStatement` function.
-         *
-         * @param {ASTNode} node - A node. This is a LabeledStatement.
+         * @param {ASTNode} node A node. This is a LabeledStatement.
          * @returns {void}
          */
         function exitLabeledStatement(node) {
@@ -91,8 +93,7 @@ module.exports = {
 
         /**
          * Reports a given control node if it's unnecessary.
-         *
-         * @param {ASTNode} node - A node. This is a BreakStatement or a
+         * @param {ASTNode} node A node. This is a BreakStatement or a
          *      ContinueStatement.
          * @returns {void}
          */
@@ -108,9 +109,17 @@ module.exports = {
                     if (info.breakable && info.label && info.label.name === labelNode.name) {
                         context.report({
                             node: labelNode,
-                            message: "This label '{{name}}' is unnecessary.",
+                            messageId: "unexpected",
                             data: labelNode,
-                            fix: fixer => fixer.removeRange([sourceCode.getFirstToken(node).range[1], labelNode.range[1]])
+                            fix(fixer) {
+                                const breakOrContinueToken = sourceCode.getFirstToken(node);
+
+                                if (sourceCode.commentsExistBetween(breakOrContinueToken, labelNode)) {
+                                    return null;
+                                }
+
+                                return fixer.removeRange([breakOrContinueToken.range[1], labelNode.range[1]]);
+                            }
                         });
                     }
                     return;

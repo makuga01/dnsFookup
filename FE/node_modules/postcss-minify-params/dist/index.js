@@ -1,8 +1,34 @@
-var postcss = require('postcss');
-var valueParser = require('postcss-value-parser');
-var stringify = valueParser.stringify;
-var sort = require('alphanum-sort');
-var uniqs = require('uniqs');
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _browserslist = require('browserslist');
+
+var _browserslist2 = _interopRequireDefault(_browserslist);
+
+var _postcss = require('postcss');
+
+var _postcss2 = _interopRequireDefault(_postcss);
+
+var _postcssValueParser = require('postcss-value-parser');
+
+var _postcssValueParser2 = _interopRequireDefault(_postcssValueParser);
+
+var _alphanumSort = require('alphanum-sort');
+
+var _alphanumSort2 = _interopRequireDefault(_alphanumSort);
+
+var _uniqs = require('uniqs');
+
+var _uniqs2 = _interopRequireDefault(_uniqs);
+
+var _cssnanoUtilGetArguments = require('cssnano-util-get-arguments');
+
+var _cssnanoUtilGetArguments2 = _interopRequireDefault(_cssnanoUtilGetArguments);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
  * Return the greatest common divisor
@@ -14,29 +40,13 @@ function gcd(a, b) {
 }
 
 function aspectRatio(a, b) {
-    var divisor = gcd(a, b);
+    const divisor = gcd(a, b);
 
     return [a / divisor, b / divisor];
 }
 
-function split(nodes, div) {
-    var result = [];
-    var i, max, node;
-    var last = '';
-
-    for (i = 0, max = nodes.length; i < max; i += 1) {
-        node = nodes[i];
-        if (node.type === 'div' && node.value === div) {
-            result.push(last);
-            last = '';
-        } else {
-            last += stringify(node);
-        }
-    }
-
-    result.push(last);
-
-    return result;
+function split(args) {
+    return args.map(arg => (0, _postcssValueParser.stringify)(arg)).join('');
 }
 
 function removeNode(node) {
@@ -44,63 +54,73 @@ function removeNode(node) {
     node.type = 'word';
 }
 
-module.exports = postcss.plugin('postcss-minify-params', function () {
-    return function (css) {
-        css.walkAtRules(function (rule) {
-            if (!rule.params) {
-                return;
+function transform(legacy, rule) {
+    const ruleName = rule.name.toLowerCase();
+
+    // We should re-arrange parameters only for `@media` and `@supports` at-rules
+    if (!rule.params || !["media", "supports"].includes(ruleName)) {
+        return;
+    }
+
+    const params = (0, _postcssValueParser2.default)(rule.params);
+
+    params.walk((node, index) => {
+        if (node.type === 'div' || node.type === 'function') {
+            node.before = node.after = '';
+
+            if (node.type === 'function' && node.nodes[4] && node.nodes[0].value.toLowerCase().indexOf('-aspect-ratio') === 3) {
+                const [a, b] = aspectRatio(node.nodes[2].value, node.nodes[4].value);
+
+                node.nodes[2].value = a;
+                node.nodes[4].value = b;
             }
+        } else if (node.type === 'space') {
+            node.value = ' ';
+        } else {
+            const prevWord = params.nodes[index - 2];
 
-            var params = valueParser(rule.params);
+            if (node.value.toLowerCase() === 'all' && rule.name.toLowerCase() === 'media' && !prevWord) {
+                const nextWord = params.nodes[index + 2];
 
-            params.walk(function (node, index) {
-                if (node.type === 'div' || node.type === 'function') {
-                    node.before = node.after = '';
-                    if (
-                        node.type === 'function' &&
-                        node.nodes[4] &&
-                        node.nodes[0].value.indexOf('-aspect-ratio') === 3
-                    ) {
-                        var ref = aspectRatio(
-                            node.nodes[2].value,
-                            node.nodes[4].value
-                        );
-                        var a = ref[0];
-                        var b = ref[1];
-                        node.nodes[2].value = a;
-                        node.nodes[4].value = b;
-                    }
-                } else if (node.type === 'space') {
-                    node.value = ' ';
-                } else if (node.type === 'word') {
-                    var prevWord = params.nodes[index - 2];
-                    if (
-                        node.value === 'all' &&
-                        rule.name === 'media' &&
-                        !prevWord
-                    ) {
-                        var nextSpace = params.nodes[index + 1];
-                        var nextWord = params.nodes[index + 2];
-                        var secondSpace = params.nodes[index + 3];
-                        if (nextWord && nextWord.value === 'and') {
-                            removeNode(nextWord);
-                            removeNode(nextSpace);
-                            if (secondSpace) {
-                                removeNode(secondSpace);
-                            }
-                        }
-                        removeNode(node);
-                    }
+                if (!legacy || nextWord) {
+                    removeNode(node);
                 }
-            }, true);
 
-            rule.params = sort(uniqs(split(params.nodes, ',')), {
-                insensitive: true
-            }).join();
+                if (nextWord && nextWord.value.toLowerCase() === 'and') {
+                    const nextSpace = params.nodes[index + 1];
+                    const secondSpace = params.nodes[index + 3];
 
-            if (!rule.params.length) {
-                rule.raws.afterName = '';
+                    removeNode(nextWord);
+                    removeNode(nextSpace);
+                    removeNode(secondSpace);
+                }
             }
+        }
+    }, true);
+
+    rule.params = (0, _alphanumSort2.default)((0, _uniqs2.default)((0, _cssnanoUtilGetArguments2.default)(params).map(split)), {
+        insensitive: true
+    }).join();
+
+    if (!rule.params.length) {
+        rule.raws.afterName = '';
+    }
+}
+
+function hasAllBug(browser) {
+    return ~['ie 10', 'ie 11'].indexOf(browser);
+}
+
+exports.default = _postcss2.default.plugin('postcss-minify-params', () => {
+    return (css, result) => {
+        const resultOpts = result.opts || {};
+        const browsers = (0, _browserslist2.default)(null, {
+            stats: resultOpts.stats,
+            path: __dirname,
+            env: resultOpts.env
         });
+
+        return css.walkAtRules(transform.bind(null, browsers.some(hasAllBug)));
     };
 });
+module.exports = exports['default'];

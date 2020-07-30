@@ -1,6 +1,8 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 exports.default = getParsed;
 
 var _postcssValueParser = require('postcss-value-parser');
@@ -10,9 +12,7 @@ var _postcssValueParser2 = _interopRequireDefault(_postcssValueParser);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function getParsed(decl) {
-    var value = decl.value,
-        raws = decl.raws;
-
+    let { value, raws } = decl;
     if (raws && raws.value && raws.value.raw) {
         value = raws.value.raw;
     }

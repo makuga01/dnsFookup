@@ -1,4 +1,4 @@
-# DnsFookup v 2.0
+# DnsFookup v 2.0.1
 [DNS Rebinding](https://en.wikipedia.org/wiki/DNS_rebinding) freamwork containing:
  - a dns server obviously
  - python web api to create new subdomains and control the dns server, view logs, stuff like that

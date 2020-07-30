@@ -1,6 +1,8 @@
 'use strict';
 
-var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
 var _path = require('path');
 
@@ -24,19 +26,29 @@ var _isAbsoluteUrl2 = _interopRequireDefault(_isAbsoluteUrl);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var multiline = /\\[\r\n]/;
-var escapeChars = /([\s\(\)"'])/g;
+const multiline = /\\[\r\n]/;
+const escapeChars = /([\s\(\)"'])/g;
 
 function convert(url, options) {
-    if ((0, _isAbsoluteUrl2.default)(url) || !url.indexOf('//')) {
-        return (0, _normalizeUrl2.default)(url, options);
+    if ((0, _isAbsoluteUrl2.default)(url) || url.startsWith('//')) {
+        let normalizedURL = null;
+
+        try {
+            normalizedURL = (0, _normalizeUrl2.default)(url, options);
+        } catch (e) {
+            normalizedURL = url;
+        }
+
+        return normalizedURL;
     }
+
+    // `path.normalize` always returns backslashes on Windows, need replace in `/`
     return _path2.default.normalize(url).replace(new RegExp('\\' + _path2.default.sep, 'g'), '/');
 }
 
 function transformNamespace(rule) {
-    rule.params = (0, _postcssValueParser2.default)(rule.params).walk(function (node) {
-        if (node.type === 'function' && node.value === 'url' && node.nodes.length) {
+    rule.params = (0, _postcssValueParser2.default)(rule.params).walk(node => {
+        if (node.type === 'function' && node.value.toLowerCase() === 'url' && node.nodes.length) {
             node.type = 'string';
             node.quote = node.nodes[0].quote || '"';
             node.value = node.nodes[0].value;
@@ -49,28 +61,36 @@ function transformNamespace(rule) {
 }
 
 function transformDecl(decl, opts) {
-    decl.value = (0, _postcssValueParser2.default)(decl.value).walk(function (node) {
-        if (node.type !== 'function' || node.value !== 'url' || !node.nodes.length) {
+    decl.value = (0, _postcssValueParser2.default)(decl.value).walk(node => {
+        if (node.type !== 'function' || node.value.toLowerCase() !== 'url' || !node.nodes.length) {
             return false;
         }
 
-        var url = node.nodes[0];
-        var escaped = void 0;
+        let url = node.nodes[0];
+        let escaped;
 
         node.before = node.after = '';
         url.value = url.value.trim().replace(multiline, '');
 
-        if (~url.value.indexOf('data:image/') || ~url.value.indexOf('data:application/') || ~url.value.indexOf('data:font/')) {
+        // Skip empty URLs
+        // Empty URL function equals request to current stylesheet where it is declared
+        if (url.value.length === 0) {
+            url.quote = '';
+
             return false;
         }
 
-        if (!~url.value.indexOf('chrome-extension')) {
+        if (/^data:(.*)?,/i.test(url.value)) {
+            return false;
+        }
+
+        if (!/^.+-extension:\//i.test(url.value)) {
             url.value = convert(url.value, opts);
         }
 
-        if (escapeChars.test(url.value)) {
+        if (escapeChars.test(url.value) && url.type === 'string') {
             escaped = url.value.replace(escapeChars, '\\$1');
-            if (escaped.length < url.value.length + (url.type === 'string' ? 2 : 0)) {
+            if (escaped.length < url.value.length + 2) {
                 url.value = escaped;
                 url.type = 'word';
             }
@@ -82,20 +102,21 @@ function transformDecl(decl, opts) {
     }).toString();
 }
 
-module.exports = _postcss2.default.plugin('postcss-normalize-url', function (opts) {
-    opts = _extends({
+exports.default = _postcss2.default.plugin('postcss-normalize-url', opts => {
+    opts = Object.assign({}, {
         normalizeProtocol: false,
         stripFragment: false,
-        stripWWW: true
+        stripWWW: false
     }, opts);
 
-    return function (css) {
-        css.walk(function (node) {
+    return css => {
+        css.walk(node => {
             if (node.type === 'decl') {
                 return transformDecl(node, opts);
-            } else if (node.type === 'atrule' && node.name === 'namespace') {
+            } else if (node.type === 'atrule' && node.name.toLowerCase() === 'namespace') {
                 return transformNamespace(node);
             }
         });
     };
 });
+module.exports = exports['default'];

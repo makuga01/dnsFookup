@@ -10,20 +10,20 @@ var _postcss2 = _interopRequireDefault(_postcss);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var OVERRIDABLE_RULES = ['keyframes', 'counter-style'];
-var SCOPE_RULES = ['media', 'supports'];
+const OVERRIDABLE_RULES = ['keyframes', 'counter-style'];
+const SCOPE_RULES = ['media', 'supports'];
 
 function isOverridable(name) {
-    return OVERRIDABLE_RULES.indexOf(_postcss2.default.vendor.unprefixed(name)) !== -1;
+    return ~OVERRIDABLE_RULES.indexOf(_postcss2.default.vendor.unprefixed(name.toLowerCase()));
 }
 
 function isScope(name) {
-    return SCOPE_RULES.indexOf(_postcss2.default.vendor.unprefixed(name)) !== -1;
+    return ~SCOPE_RULES.indexOf(_postcss2.default.vendor.unprefixed(name.toLowerCase()));
 }
 
 function getScope(node) {
-    var current = node.parent;
-    var chain = [node.name, node.params];
+    let current = node.parent;
+    const chain = [node.name.toLowerCase(), node.params];
     do {
         if (current.type === 'atrule' && isScope(current.name)) {
             chain.unshift(current.name + ' ' + current.params);
@@ -33,21 +33,21 @@ function getScope(node) {
     return chain.join('|');
 }
 
-exports.default = _postcss2.default.plugin('postcss-discard-overridden', function () {
-    return function (css) {
-        var cache = {};
-        var rules = [];
-        css.walkAtRules(function (rule) {
-            if (rule.type === 'atrule' && isOverridable(rule.name)) {
-                var scope = getScope(rule);
-                cache[scope] = rule;
+exports.default = _postcss2.default.plugin('postcss-discard-overridden', () => {
+    return css => {
+        const cache = {};
+        const rules = [];
+        css.walkAtRules(node => {
+            if (isOverridable(node.name)) {
+                const scope = getScope(node);
+                cache[scope] = node;
                 rules.push({
-                    node: rule,
-                    scope: scope
+                    node,
+                    scope
                 });
             }
         });
-        rules.forEach(function (rule) {
+        rules.forEach(rule => {
             if (cache[rule.scope] !== rule.node) {
                 rule.node.remove();
             }

@@ -1,9 +1,15 @@
 'use strict';
 
-var EXTEND = require('whet.extend');
+var cssSelect = require('css-select');
+
+var svgoCssSelectAdapter = require('./css-select-adapter');
+var cssSelectOpts = {
+  xmlMode: true,
+  adapter: svgoCssSelectAdapter
+};
 
 var JSAPI = module.exports = function(data, parentNode) {
-    EXTEND(this, data);
+    Object.assign(this, data);
     if (parentNode) {
         Object.defineProperty(this, 'parentNode', {
             writable: true,
@@ -22,13 +28,12 @@ JSAPI.prototype.clone = function() {
     var nodeData = {};
 
     Object.keys(node).forEach(function(key) {
-        if (key !== 'content') {
+        if (key !== 'class' && key !== 'style' && key !== 'content') {
             nodeData[key] = node[key];
         }
     });
 
-    // Deep-clone node data
-    // This is still faster than using EXTEND(true…)
+    // Deep-clone node data.
     nodeData = JSON.parse(JSON.stringify(nodeData));
 
     // parentNode gets set to a proper object by the parent clone,
@@ -36,6 +41,12 @@ JSAPI.prototype.clone = function() {
     // in the constructor.
     var clonedNode = new JSAPI(nodeData, !!node.parentNode);
 
+    if (node.class) {
+        clonedNode.class = node.class.clone(clonedNode);
+    }
+    if (node.style) {
+        clonedNode.style = node.style.clone(clonedNode);
+    }
     if (node.content) {
         clonedNode.content = node.content.map(function(childNode) {
             var clonedChild = childNode.clone();
@@ -88,6 +99,20 @@ JSAPI.prototype.renameElem = function(name) {
 
     return !this.content || !this.content.length;
 
+};
+
+/**
+ * Find the closest ancestor of the current element.
+ * @param elemName
+ *
+ * @return {?Object}
+ */
+ JSAPI.prototype.closestElem = function(elemName) {
+    var elem = this;
+
+    while ((elem = elem.parentNode) && !elem.isElem(elemName));
+
+    return elem;
 };
 
 /**
@@ -224,7 +249,10 @@ JSAPI.prototype.renameElem = function(name) {
 
     if (!arguments.length) return false;
 
-    if (Array.isArray(name)) name.forEach(this.removeAttr, this);
+    if (Array.isArray(name)) {
+        name.forEach(this.removeAttr, this);
+        return false;
+    }
 
     if (!this.hasAttr(name)) return false;
 
@@ -254,6 +282,14 @@ JSAPI.prototype.renameElem = function(name) {
 
     this.attrs = this.attrs || {};
     this.attrs[attr.name] = attr;
+
+    if(attr.name === 'class') { // newly added class attribute
+        this.class.hasClass();
+    }
+
+    if(attr.name === 'style') { // newly added style attribute
+        this.style.hasStyle();
+    }
 
     return this.attrs[attr.name];
 
@@ -294,5 +330,43 @@ JSAPI.prototype.renameElem = function(name) {
     }
 
     return false;
+
+};
+
+/**
+ * Evaluate a string of CSS selectors against the element and returns matched elements.
+ *
+ * @param {String} selectors CSS selector(s) string
+ * @return {Array} null if no elements matched
+ */
+ JSAPI.prototype.querySelectorAll = function(selectors) {
+
+   var matchedEls = cssSelect(selectors, this, cssSelectOpts);
+
+   return matchedEls.length > 0 ? matchedEls : null;
+
+};
+
+/**
+ * Evaluate a string of CSS selectors against the element and returns only the first matched element.
+ *
+ * @param {String} selectors CSS selector(s) string
+ * @return {Array} null if no element matched
+ */
+ JSAPI.prototype.querySelector = function(selectors) {
+
+   return cssSelect.selectOne(selectors, this, cssSelectOpts);
+
+};
+
+/**
+ * Test if a selector matches a given element.
+ *
+ * @param {String} selector CSS selector string
+ * @return {Boolean} true if element would be selected by selector string, false if it does not
+ */
+ JSAPI.prototype.matches = function(selector) {
+
+   return cssSelect.is(this, selector, cssSelectOpts);
 
 };

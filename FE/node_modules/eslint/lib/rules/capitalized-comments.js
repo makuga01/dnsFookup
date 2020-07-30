@@ -8,22 +8,16 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-const LETTER_PATTERN = require("../util/patterns/letters");
+const LETTER_PATTERN = require("./utils/patterns/letters");
+const astUtils = require("./utils/ast-utils");
 
 //------------------------------------------------------------------------------
 // Helpers
 //------------------------------------------------------------------------------
 
-const ALWAYS_MESSAGE = "Comments should not begin with a lowercase character",
-    NEVER_MESSAGE = "Comments should not begin with an uppercase character",
-    DEFAULT_IGNORE_PATTERN = /^\s*(?:eslint|istanbul|jscs|jshint|globals?|exported)\b/,
-    WHITESPACE = /\s/g,
-    MAYBE_URL = /^\s*[^:/?#\s]+:\/\/[^?#]/,    // TODO: Combine w/ max-len pattern?
-    DEFAULTS = {
-        ignorePattern: null,
-        ignoreInlineComments: false,
-        ignoreConsecutiveComments: false
-    };
+const DEFAULT_IGNORE_PATTERN = astUtils.COMMENTS_IGNORE_PATTERN,
+    WHITESPACE = /\s/gu,
+    MAYBE_URL = /^\s*[^:/?#\s]+:\/\/[^?#]/u; // TODO: Combine w/ max-len pattern?
 
 /*
  * Base schema body for defining the basic capitalization rule, ignorePattern,
@@ -45,6 +39,11 @@ const SCHEMA_BODY = {
     },
     additionalProperties: false
 };
+const DEFAULTS = {
+    ignorePattern: "",
+    ignoreInlineComments: false,
+    ignoreConsecutiveComments: false
+};
 
 /**
  * Get normalized options for either block or line comments from the given
@@ -55,27 +54,21 @@ const SCHEMA_BODY = {
  *   set is returned. Options specified in overrides will take priority
  *   over options specified in the main options object, which will in
  *   turn take priority over the rule's defaults.
- *
  * @param {Object|string} rawOptions The user-provided options.
  * @param {string} which Either "line" or "block".
  * @returns {Object} The normalized options.
  */
 function getNormalizedOptions(rawOptions, which) {
-    if (!rawOptions) {
-        return Object.assign({}, DEFAULTS);
-    }
-
     return Object.assign({}, DEFAULTS, rawOptions[which] || rawOptions);
 }
 
 /**
  * Get normalized options for block and line comments.
- *
  * @param {Object|string} rawOptions The user-provided options.
  * @returns {Object} An object with "Line" and "Block" keys and corresponding
  * normalized options objects.
  */
-function getAllNormalizedOptions(rawOptions) {
+function getAllNormalizedOptions(rawOptions = {}) {
     return {
         Line: getNormalizedOptions(rawOptions, "line"),
         Block: getNormalizedOptions(rawOptions, "block")
@@ -87,7 +80,6 @@ function getAllNormalizedOptions(rawOptions) {
  * options.
  *
  * This is done in order to avoid invoking the RegExp constructor repeatedly.
- *
  * @param {Object} normalizedOptions The normalized rule options.
  * @returns {void}
  */
@@ -96,7 +88,7 @@ function createRegExpForIgnorePatterns(normalizedOptions) {
         const ignorePatternStr = normalizedOptions[key].ignorePattern;
 
         if (ignorePatternStr) {
-            const regExp = RegExp(`^\\s*(?:${ignorePatternStr})`);
+            const regExp = RegExp(`^\\s*(?:${ignorePatternStr})`, "u");
 
             normalizedOptions[key].ignorePatternRegExp = regExp;
         }
@@ -109,12 +101,17 @@ function createRegExpForIgnorePatterns(normalizedOptions) {
 
 module.exports = {
     meta: {
+        type: "suggestion",
+
         docs: {
             description: "enforce or disallow capitalization of the first letter of a comment",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/capitalized-comments"
         },
+
         fixable: "code",
+
         schema: [
             { enum: ["always", "never"] },
             {
@@ -130,7 +127,12 @@ module.exports = {
                     }
                 ]
             }
-        ]
+        ],
+
+        messages: {
+            unexpectedLowercaseComment: "Comments should not begin with a lowercase character.",
+            unexpectedUppercaseComment: "Comments should not begin with an uppercase character."
+        }
     },
 
     create(context) {
@@ -157,7 +159,6 @@ module.exports = {
          * Also, it follows from this definition that only block comments can
          * be considered as possibly inline. This is because line comments
          * would consume any following tokens on the same line as the comment.
-         *
          * @param {ASTNode} comment The comment node to check.
          * @returns {boolean} True if the comment is an inline comment, false
          * otherwise.
@@ -176,7 +177,6 @@ module.exports = {
 
         /**
          * Determine if a comment follows another comment.
-         *
          * @param {ASTNode} comment The comment to check.
          * @returns {boolean} True if the comment follows a valid comment.
          */
@@ -191,7 +191,6 @@ module.exports = {
 
         /**
          * Check a comment to determine if it is valid for this rule.
-         *
          * @param {ASTNode} comment The comment node to process.
          * @param {Object} options The options for checking this comment.
          * @returns {boolean} True if the comment is valid, false otherwise.
@@ -205,7 +204,7 @@ module.exports = {
 
             // 2. Check for custom ignore pattern.
             const commentWithoutAsterisks = comment.value
-                .replace(/\*/g, "");
+                .replace(/\*/gu, "");
 
             if (options.ignorePatternRegExp && options.ignorePatternRegExp.test(commentWithoutAsterisks)) {
                 return true;
@@ -246,7 +245,8 @@ module.exports = {
 
             if (capitalize === "always" && isLowercase) {
                 return false;
-            } else if (capitalize === "never" && isUppercase) {
+            }
+            if (capitalize === "never" && isUppercase) {
                 return false;
             }
 
@@ -255,7 +255,6 @@ module.exports = {
 
         /**
          * Process a comment to determine if it needs to be reported.
-         *
          * @param {ASTNode} comment The comment node to process.
          * @returns {void}
          */
@@ -264,14 +263,14 @@ module.exports = {
                 commentValid = isCommentValid(comment, options);
 
             if (!commentValid) {
-                const message = capitalize === "always"
-                    ? ALWAYS_MESSAGE
-                    : NEVER_MESSAGE;
+                const messageId = capitalize === "always"
+                    ? "unexpectedLowercaseComment"
+                    : "unexpectedUppercaseComment";
 
                 context.report({
-                    node: null,         // Intentionally using loc instead
+                    node: null, // Intentionally using loc instead
                     loc: comment.loc,
-                    message,
+                    messageId,
                     fix(fixer) {
                         const match = comment.value.match(LETTER_PATTERN);
 
@@ -294,7 +293,7 @@ module.exports = {
             Program() {
                 const comments = sourceCode.getAllComments();
 
-                comments.forEach(processComment);
+                comments.filter(token => token.type !== "Shebang").forEach(processComment);
             }
         };
     }

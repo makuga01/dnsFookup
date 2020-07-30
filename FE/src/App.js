@@ -47,7 +47,7 @@ class App extends Component {
         "Access-Control-Request-Headers": "Authorization, Accept"
       })
     };
-    fetch("http://rbnd.gl0.eu:5000/api/user", obj)
+    fetch(process.env.REACT_APP_API+"/api/user", obj)
       .then(res => res.json())
       .then(data => {
         if (
@@ -98,7 +98,7 @@ class App extends Component {
 
   handleLogout = event => {
     var bearer = "Bearer " + localStorage.getItem("access_token");
-    fetch("http://rbnd.gl0.eu:5000/auth/logout", {
+    fetch(process.env.REACT_APP_API+"/auth/logout", {
       method: "POST",
       headers: new Headers({
         Accept: "aplication/json",
@@ -180,16 +180,21 @@ class App extends Component {
         >
           <Grid.Row>
           <Grid.Column>
-            <Button icon inverted>
-            <Icon name='github'/>Star this project
+            <Button
+            inverted
+            href="https://github.com/makuga01/dnsFookup"
+            target="_blank"
+            >
+            <Icon
+            name='github'
+            />Star this project
 
             </Button>
 
             <Button
               inverted
-              href="https://geleta.eu/whoami"
               target="_blank"
-              onClick={() => {window.open("https://keybase.io/gel0")}}
+              href="https://keybase.io/gel0"
             >
               <Icon
                 name='envelope outline'
@@ -201,7 +206,6 @@ class App extends Component {
               inverted
               href="https://geleta.eu/whoami"
               target="_blank"
-              onClick={() => {window.open("https://geleta.eu/whoami")}}
             >
             <Icon
               name='user outline'

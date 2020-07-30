@@ -1,6 +1,6 @@
 from app import db
 from passlib.hash import pbkdf2_sha256 as sha256
-from sqlalchemy import func
+from sqlalchemy import func, desc
 
 """
 I think all the names of the functions are self-explaining
@@ -206,7 +206,7 @@ class LogModel(db.Model):
                 'created_date': x.created_date
             }
         if uuid in [y['uuid'] for y in DnsModel.find_by_user(username)]:
-            uuid_query = cls.query.filter_by(uuid = uuid).paginate(page,per_page,error_out=False)
+            uuid_query = cls.query.filter_by(uuid = uuid).order_by(cls.created_date.desc()).paginate(page,per_page,error_out=False)
             return (uuid_query.total,uuid_query.pages, list(map(lambda x: to_json(x), uuid_query.items)))
         else:
             return ("?",0,[])

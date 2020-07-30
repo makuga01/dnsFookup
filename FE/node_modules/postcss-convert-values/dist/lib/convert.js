@@ -1,24 +1,22 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
-exports.default = function (number, unit, _ref) {
-    var time = _ref.time,
-        length = _ref.length,
-        angle = _ref.angle;
+exports.default = function (number, unit, { time, length, angle }) {
+    let value = dropLeadingZero(number) + (unit ? unit : '');
+    let converted;
 
-    var value = dropLeadingZero(number) + (unit ? unit : '');
-    var converted = void 0;
-
-    if (length !== false && unit in lengthConv) {
+    if (length !== false && unit.toLowerCase() in lengthConv) {
         converted = transform(number, unit, lengthConv);
     }
 
-    if (time !== false && unit in timeConv) {
+    if (time !== false && unit.toLowerCase() in timeConv) {
         converted = transform(number, unit, timeConv);
     }
 
-    if (angle !== false && unit in angleConv) {
+    if (angle !== false && unit.toLowerCase() in angleConv) {
         converted = transform(number, unit, angleConv);
     }
 
@@ -29,25 +27,25 @@ exports.default = function (number, unit, _ref) {
     return value;
 };
 
-var lengthConv = {
+const lengthConv = {
     in: 96,
     px: 1,
     pt: 4 / 3,
     pc: 16
 };
 
-var timeConv = {
+const timeConv = {
     s: 1000,
     ms: 1
 };
 
-var angleConv = {
+const angleConv = {
     turn: 360,
     deg: 1
 };
 
 function dropLeadingZero(number) {
-    var value = String(number);
+    const value = String(number);
 
     if (number % 1) {
         if (value[0] === '0') {
@@ -63,26 +61,22 @@ function dropLeadingZero(number) {
 }
 
 function transform(number, unit, conversion) {
-    var one = void 0,
-        base = void 0;
-    var convertionUnits = Object.keys(conversion).filter(function (u) {
+    const lowerCasedUnit = unit.toLowerCase();
+    let one, base;
+    let convertionUnits = Object.keys(conversion).filter(u => {
         if (conversion[u] === 1) {
             one = u;
         }
-        return unit !== u;
+        return lowerCasedUnit !== u;
     });
 
-    if (unit === one) {
-        base = number / conversion[unit];
+    if (lowerCasedUnit === one) {
+        base = number / conversion[lowerCasedUnit];
     } else {
-        base = number * conversion[unit];
+        base = number * conversion[lowerCasedUnit];
     }
 
-    return convertionUnits.map(function (u) {
-        return dropLeadingZero(base / conversion[u]) + u;
-    }).reduce(function (a, b) {
-        return a.length < b.length ? a : b;
-    });
+    return convertionUnits.map(u => dropLeadingZero(base / conversion[u]) + u).reduce((a, b) => a.length < b.length ? a : b);
 }
 
 module.exports = exports['default'];

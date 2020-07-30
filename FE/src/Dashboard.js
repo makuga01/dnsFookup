@@ -39,7 +39,7 @@ class Dashboard extends Component {
         "Access-Control-Request-Headers": "Authorization, Accept"
       })
     };
-    fetch("http://rbnd.gl0.eu:5000/api/statistics", obj)
+    fetch(process.env.REACT_APP_API+"/api/statistics", obj)
       .then(res => res.json())
       .then(data => {
         if (
@@ -92,26 +92,6 @@ class Dashboard extends Component {
               </Statistic>
             </Statistic.Group>
             <Divider />
-          </Grid.Column>
-        </Grid>
-
-        <Grid
-          textAlign="center"
-          style={{ height: "10vh" }}
-          verticalAlign="middle"
-        >
-          <Grid.Column style={{ maxWidth: 650 }}>
-            <Button.Group fluid vertical labeled icon>
-              <Link to="/dnsbin">
-                <Button
-                  inverted
-                  size="huge"
-                  icon="shuffle"
-                  content="Let's go!"
-                  primary
-                />
-              </Link>
-            </Button.Group>
           </Grid.Column>
         </Grid>
       </div>

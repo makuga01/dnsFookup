@@ -1,3 +1,10 @@
+# 0.4.0
+
+- Changed: Invalid conversions now return `null` instead of `undefined`
+- Changed: Moved to XO standard
+- Fixed: a few details in package.json
+- Fixed: readme output regarding wrapped hue values ([#21](https://github.com/MoOx/color-string/pull/21))
+
 # 0.3.0
 
 - Fixed: HSL alpha channel ([#16](https://github.com/harthur/color-string/pull/16))

@@ -183,6 +183,8 @@ Returns the name associated with a JSXAttribute. For example, given `<div foo="b
 #### Prop
 Object - The JSXAttribute collected by AST parser.
 
+<hr />
+
 ### eventHandlers
 
 ```js

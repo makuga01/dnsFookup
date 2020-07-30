@@ -1,32 +1,72 @@
 "use strict";
 const HTMLElementImpl = require("./HTMLElement-impl").implementation;
-const LinkStyleImpl = require("./LinkStyle-impl").implementation;
-const idlUtils = require("../generated/utils");
-const domSymbolTree = require("../helpers/internal-constants").domSymbolTree;
-const NODE_TYPE = require("../node-type");
-const evaluateStylesheet = require("../helpers/stylesheets").evaluateStylesheet;
-const documentBaseURL = require("../helpers/document-base-url").documentBaseURL;
+const { removeStylesheet, createStylesheet } = require("../helpers/stylesheets");
+const { documentBaseURL } = require("../helpers/document-base-url");
+const { childTextContent } = require("../helpers/text");
+const { asciiCaseInsensitiveMatch } = require("../helpers/strings");
 
 class HTMLStyleElementImpl extends HTMLElementImpl {
+  constructor(args, privateData) {
+    super(args, privateData);
+
+    this.sheet = null;
+    this._isOnStackOfOpenElements = false;
+  }
+
   _attach() {
-    if (this.type && this.type !== "text/css") {
+    super._attach();
+    if (!this._isOnStackOfOpenElements) {
+      this._updateAStyleBlock();
+    }
+  }
+
+  _detach() {
+    super._detach();
+    if (!this._isOnStackOfOpenElements) {
+      this._updateAStyleBlock();
+    }
+  }
+
+  _childTextContentChangeSteps() {
+    super._childTextContentChangeSteps();
+
+    // This guard is not required by the spec, but should be unobservable (since you can't run script during the middle
+    // of parsing a <style> element) and saves a bunch of unnecessary work.
+    if (!this._isOnStackOfOpenElements) {
+      this._updateAStyleBlock();
+    }
+  }
+
+  _poppedOffStackOfOpenElements() {
+    this._isOnStackOfOpenElements = false;
+    this._updateAStyleBlock();
+  }
+
+  _pushedOnStackOfOpenElements() {
+    this._isOnStackOfOpenElements = true;
+  }
+
+  _updateAStyleBlock() {
+    if (this.sheet) {
+      removeStylesheet(this.sheet, this);
+    }
+
+    if (!this._attached) {
       return;
     }
 
-    let content = "";
-    for (const child of domSymbolTree.childrenIterator(this)) {
-      if (child.nodeType === NODE_TYPE.TEXT_NODE) {
-        content += child.nodeValue;
-      }
+    const type = this.getAttribute("type");
+    if (type !== null && type !== "" && !asciiCaseInsensitiveMatch(type, "text/css")) {
+      return;
     }
 
-    evaluateStylesheet(this, content, this.sheet, documentBaseURL(this._ownerDocument));
+    // Not implemented: CSP
 
-    super._attach();
+    const content = childTextContent(this);
+    // Not implemented: a bunch of other state, e.g. title/media attributes
+    createStylesheet(content, this, documentBaseURL(this._ownerDocument));
   }
 }
-
-idlUtils.mixin(HTMLStyleElementImpl.prototype, LinkStyleImpl.prototype);
 
 module.exports = {
   implementation: HTMLStyleElementImpl

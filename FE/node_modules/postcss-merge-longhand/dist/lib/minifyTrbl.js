@@ -1,27 +1,30 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _postcss = require('postcss');
+var _parseTrbl = require('./parseTrbl');
 
-exports['default'] = function (v) {
-    var s = typeof v === 'string' ? _postcss.list.space(v) : v;
-    var value = [s[0], // top
-    s[1] || s[0], // right
-    s[2] || s[0], // bottom
-    s[3] || s[1] || s[0] // left
-    ];
+var _parseTrbl2 = _interopRequireDefault(_parseTrbl);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = v => {
+    const value = (0, _parseTrbl2.default)(v);
+
     if (value[3] === value[1]) {
         value.pop();
+
         if (value[2] === value[0]) {
             value.pop();
+
             if (value[0] === value[1]) {
                 value.pop();
             }
         }
     }
+
     return value.join(' ');
 };
 

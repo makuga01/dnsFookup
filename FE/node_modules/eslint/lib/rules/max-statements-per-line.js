@@ -8,7 +8,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-const astUtils = require("../ast-utils");
+const astUtils = require("./utils/ast-utils");
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -16,10 +16,13 @@ const astUtils = require("../ast-utils");
 
 module.exports = {
     meta: {
+        type: "layout",
+
         docs: {
             description: "enforce a maximum number of statements allowed per line",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/max-statements-per-line"
         },
 
         schema: [
@@ -28,20 +31,23 @@ module.exports = {
                 properties: {
                     max: {
                         type: "integer",
-                        minimum: 1
+                        minimum: 1,
+                        default: 1
                     }
                 },
                 additionalProperties: false
             }
-        ]
+        ],
+        messages: {
+            exceed: "This line has {{numberOfStatementsOnThisLine}} {{statements}}. Maximum allowed is {{maxStatementsPerLine}}."
+        }
     },
 
     create(context) {
 
         const sourceCode = context.getSourceCode(),
             options = context.options[0] || {},
-            maxStatementsPerLine = typeof options.max !== "undefined" ? options.max : 1,
-            message = "This line has {{numberOfStatementsOnThisLine}} {{statements}}. Maximum allowed is {{maxStatementsPerLine}}.";
+            maxStatementsPerLine = typeof options.max !== "undefined" ? options.max : 1;
 
         let lastStatementLine = 0,
             numberOfStatementsOnThisLine = 0,
@@ -51,18 +57,17 @@ module.exports = {
         // Helpers
         //--------------------------------------------------------------------------
 
-        const SINGLE_CHILD_ALLOWED = /^(?:(?:DoWhile|For|ForIn|ForOf|If|Labeled|While)Statement|Export(?:Default|Named)Declaration)$/;
+        const SINGLE_CHILD_ALLOWED = /^(?:(?:DoWhile|For|ForIn|ForOf|If|Labeled|While)Statement|Export(?:Default|Named)Declaration)$/u;
 
         /**
          * Reports with the first extra statement, and clears it.
-         *
          * @returns {void}
          */
         function reportFirstExtraStatementAndClear() {
             if (firstExtraStatement) {
                 context.report({
                     node: firstExtraStatement,
-                    message,
+                    messageId: "exceed",
                     data: {
                         numberOfStatementsOnThisLine,
                         maxStatementsPerLine,
@@ -75,8 +80,7 @@ module.exports = {
 
         /**
          * Gets the actual last token of a given node.
-         *
-         * @param {ASTNode} node - A node to get. This is a node except EmptyStatement.
+         * @param {ASTNode} node A node to get. This is a node except EmptyStatement.
          * @returns {Token} The actual last token.
          */
         function getActualLastToken(node) {
@@ -86,16 +90,17 @@ module.exports = {
         /**
          * Addresses a given node.
          * It updates the state of this rule, then reports the node if the node violated this rule.
-         *
-         * @param {ASTNode} node - A node to check.
+         * @param {ASTNode} node A node to check.
          * @returns {void}
          */
         function enterStatement(node) {
             const line = node.loc.start.line;
 
-            // Skip to allow non-block statements if this is direct child of control statements.
-            // `if (a) foo();` is counted as 1.
-            // But `if (a) foo(); else foo();` should be counted as 2.
+            /*
+             * Skip to allow non-block statements if this is direct child of control statements.
+             * `if (a) foo();` is counted as 1.
+             * But `if (a) foo(); else foo();` should be counted as 2.
+             */
             if (SINGLE_CHILD_ALLOWED.test(node.parent.type) &&
                 node.parent.alternate !== node
             ) {
@@ -119,8 +124,7 @@ module.exports = {
 
         /**
          * Updates the state of this rule with the end line of leaving node to check with the next statement.
-         *
-         * @param {ASTNode} node - A node to check.
+         * @param {ASTNode} node A node to check.
          * @returns {void}
          */
         function leaveStatement(node) {

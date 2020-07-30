@@ -23,9 +23,11 @@ plugins:
   - removeXMLNS
   - removeEditorsNSData
   - cleanupAttrs
+  - inlineStyles
   - minifyStyles
   - convertStyleToAttrs
   - cleanupIDs
+  - prefixIds
   - removeRasterImages
   - removeUselessDefs
   - cleanupNumericValues
@@ -39,6 +41,7 @@ plugins:
   - removeHiddenElems
   - removeEmptyText
   - convertShapeToPath
+  - convertEllipseToCircle
   - moveElemsAttrsToGroup
   - moveGroupAttrsToElems
   - collapseGroups
@@ -48,16 +51,20 @@ plugins:
   - removeEmptyContainers
   - mergePaths
   - removeUnusedNS
-  - transformsWithOnePath
   - sortAttrs
+  - sortDefsChildren
   - removeTitle
   - removeDesc
   - removeDimensions
   - removeAttrs
+  - removeAttributesBySelector
   - removeElementsByAttr
   - addClassesToSVGElement
   - removeStyleElement
+  - removeScriptElement
   - addAttributesToSVGElement
+  - removeOffCanvasPaths
+  - reusePaths
 
 # configure the indent (default 4 spaces) used by `--pretty` here:
 #

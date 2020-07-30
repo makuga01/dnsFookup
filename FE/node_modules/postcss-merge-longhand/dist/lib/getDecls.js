@@ -1,11 +1,10 @@
 "use strict";
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 exports.default = getDecls;
 function getDecls(rule, properties) {
-    return rule.nodes.filter(function (_ref) {
-        var prop = _ref.prop;
-        return prop && ~properties.indexOf(prop);
-    });
+    return rule.nodes.filter(({ prop }) => prop && ~properties.indexOf(prop.toLowerCase()));
 }
 module.exports = exports["default"];

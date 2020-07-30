@@ -6,12 +6,9 @@ export default function propName(prop = {}) {
     throw new Error('The prop must be a JSXAttribute collected by the AST parser.');
   }
 
-  switch (prop.name.type) {
-    case 'JSXIdentifier':
-      return prop.name.name;
-    case 'JSXNamespacedName':
-      return `${prop.name.namespace.name}:${prop.name.name.name}`;
-    default:
-      return undefined;
+  if (prop.name.type === 'JSXNamespacedName') {
+    return `${prop.name.namespace.name}:${prop.name.name.name}`;
   }
+
+  return prop.name.name;
 }

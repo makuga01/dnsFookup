@@ -1,17 +1,15 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-exports['default'] = function () {
-  for (var _len = arguments.length, rules = Array(_len), _key = 0; _key < _len; _key++) {
-    rules[_key] = arguments[_key];
-  }
+var _getValue = require('./getValue');
 
-  return rules.map(function (r) {
-    return r.value;
-  }).join(' ');
-};
+var _getValue2 = _interopRequireDefault(_getValue);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = (...rules) => rules.map(_getValue2.default).join(' ');
 
 module.exports = exports['default'];

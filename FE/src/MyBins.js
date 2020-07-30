@@ -38,7 +38,7 @@ class MyBins extends Component {
         "Access-Control-Request-Headers": "Authorization, Accept"
       })
     };
-    fetch("http://rbnd.gl0.eu:5000/api/fookup/listAll", obj)
+    fetch(process.env.REACT_APP_API+"/api/fookup/listAll", obj)
       .then(res => res.json())
       .then(data => {
         if (
@@ -60,7 +60,6 @@ class MyBins extends Component {
 
   getLogs = (uuid, page) => {
     var bearer = "Bearer " + localStorage.getItem("access_token");
-    event.preventDefault();
     var data = {
       "uuid": uuid,
       "page": page
@@ -76,7 +75,7 @@ class MyBins extends Component {
       }),
       body: JSON.stringify(data)
     };
-    fetch("http://rbnd.gl0.eu:5000/api/fookup/logs/uuid", obj)
+    fetch(process.env.REACT_APP_API+"/api/fookup/logs/uuid", obj)
       .then(res => res.json())
       .then(data => {
         if (
@@ -86,7 +85,7 @@ class MyBins extends Component {
           this.setState({
             total_pages: data.pages,
             total_entries: data.entries,
-            logs: data.data.reverse()
+            logs: data.data
           });
         }
       })
@@ -95,9 +94,9 @@ class MyBins extends Component {
       });
   };
 
-  deleteUUID = () => {
+  deleteUUID = (e) => {
     var bearer = "Bearer " + localStorage.getItem("access_token");
-    event.preventDefault();
+    e.preventDefault();
     var uuid = this.state.selected
     var data = {"uuid": uuid};
     var obj = {
@@ -111,7 +110,7 @@ class MyBins extends Component {
       }),
       body: JSON.stringify(data)
     };
-    fetch("http://rbnd.gl0.eu:5000/api/fookup/delete", obj)
+    fetch(process.env.REACT_APP_API+"/api/fookup/delete", obj)
       .then(res => res.json())
       .then(data => {
         if (data.uuid_props.success === true) {
@@ -129,7 +128,6 @@ class MyBins extends Component {
 
   getProps = (uuid) => {
     var bearer = "Bearer " + localStorage.getItem("access_token");
-    event.preventDefault();
     var data = {"uuid": uuid};
     var obj = {
       method: "POST",
@@ -142,7 +140,7 @@ class MyBins extends Component {
       }),
       body: JSON.stringify(data)
     };
-    fetch("http://rbnd.gl0.eu:5000/api/fookup/props", obj)
+    fetch(process.env.REACT_APP_API+"/api/fookup/props", obj)
       .then(res => res.json())
       .then(data => {
         if (data.ip_props) {
@@ -166,6 +164,7 @@ class MyBins extends Component {
     this.getBins();
   }
   onChange = (e, data) => {
+    e.preventDefault()
     this.setState(
       { selected: data.value, curr_page: 1, total_pages: 1},
     this.getLogs(data.value, 1),
@@ -173,13 +172,15 @@ class MyBins extends Component {
     );
   };
 
-  handleReload = () => {
+  handleReload = (e) => {
+    e.preventDefault()
     this.setState({ curr_page: 1, total_pages: 1},
       this.getLogs(this.state.selected, 1)
     );
   };
 
   handlePaginationChange = (e, { activePage }) => {
+    e.preventDefault()
     this.setState({curr_page: activePage},
       this.getLogs(this.state.selected, activePage)
     );
@@ -275,7 +276,7 @@ class MyBins extends Component {
                 </Segment>
                 <Button.Group vertical>
                 <CopyToClipboard
-                  text={this.state.selected+".gel0.space"}
+                  text={this.state.selected+process.env.REACT_APP_REBIND_DOMAIN}
                   onCopy={() => this.setState({copied: true})}
                 >
                   <Button

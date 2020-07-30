@@ -2,33 +2,48 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
-var Dependency = require("../Dependency");
+"use strict";
+const Dependency = require("../Dependency");
 
-function AMDRequireArrayDependency(depsArray, range) {
-	Dependency.call(this);
-	this.depsArray = depsArray;
-	this.range = range;
+class AMDRequireArrayDependency extends Dependency {
+	constructor(depsArray, range) {
+		super();
+		this.depsArray = depsArray;
+		this.range = range;
+	}
+
+	get type() {
+		return "amd require array";
+	}
 }
-module.exports = AMDRequireArrayDependency;
 
-AMDRequireArrayDependency.prototype = Object.create(Dependency.prototype);
-AMDRequireArrayDependency.prototype.constructor = AMDRequireArrayDependency;
-AMDRequireArrayDependency.prototype.type = "amd require array";
+AMDRequireArrayDependency.Template = class AMDRequireArrayDependencyTemplate {
+	apply(dep, source, runtime) {
+		const content = this.getContent(dep, runtime);
+		source.replace(dep.range[0], dep.range[1] - 1, content);
+	}
 
-AMDRequireArrayDependency.Template = function AMDRequireArrayDependencyTemplate() {};
+	getContent(dep, runtime) {
+		const requires = dep.depsArray.map(dependency => {
+			return this.contentForDependency(dependency, runtime);
+		});
+		return `[${requires.join(", ")}]`;
+	}
 
-AMDRequireArrayDependency.Template.prototype.apply = function(dep, source, outputOptions, requestShortener) {
-	var content = "[" + dep.depsArray.map(function(dep) {
-		if(typeof dep === "string") {
+	contentForDependency(dep, runtime) {
+		if (typeof dep === "string") {
 			return dep;
-		} else {
-			var comment = "";
-			if(outputOptions.pathinfo) comment = "/*! " + requestShortener.shorten(dep.request) + " */ ";
-			if(dep.module)
-				return "__webpack_require__(" + comment + JSON.stringify(dep.module.id) + ")";
-			else
-				return require("./WebpackMissingModule").module(dep.request);
 		}
-	}).join(", ") + "]";
-	source.replace(dep.range[0], dep.range[1] - 1, content);
+
+		if (dep.localModule) {
+			return dep.localModule.variableName();
+		} else {
+			return runtime.moduleExports({
+				module: dep.module,
+				request: dep.request
+			});
+		}
+	}
 };
+
+module.exports = AMDRequireArrayDependency;

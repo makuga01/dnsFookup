@@ -2,9 +2,20 @@
  * @fileoverview Rule to flag assignment in a conditional statement's test expression
  * @author Stephen Murray <spmurrayzzz>
  */
+
 "use strict";
 
-const astUtils = require("../ast-utils");
+//------------------------------------------------------------------------------
+// Requirements
+//------------------------------------------------------------------------------
+
+const astUtils = require("./utils/ast-utils");
+
+//------------------------------------------------------------------------------
+// Helpers
+//------------------------------------------------------------------------------
+
+const TEST_CONDITION_PARENT_TYPES = new Set(["IfStatement", "WhileStatement", "DoWhileStatement", "ForStatement", "ConditionalExpression"]);
 
 const NODE_DESCRIPTIONS = {
     DoWhileStatement: "a 'do...while' statement",
@@ -19,17 +30,27 @@ const NODE_DESCRIPTIONS = {
 
 module.exports = {
     meta: {
+        type: "problem",
+
         docs: {
             description: "disallow assignment operators in conditional expressions",
             category: "Possible Errors",
-            recommended: true
+            recommended: true,
+            url: "https://eslint.org/docs/rules/no-cond-assign"
         },
 
         schema: [
             {
                 enum: ["except-parens", "always"]
             }
-        ]
+        ],
+
+        messages: {
+            unexpected: "Unexpected assignment within {{type}}.",
+
+            // must match JSHint's error message
+            missing: "Expected a conditional expression and instead saw an assignment."
+        }
     },
 
     create(context) {
@@ -45,7 +66,7 @@ module.exports = {
          */
         function isConditionalTestExpression(node) {
             return node.parent &&
-                node.parent.test &&
+                TEST_CONDITION_PARENT_TYPES.has(node.parent.type) &&
                 node === node.parent.test;
         }
 
@@ -67,19 +88,6 @@ module.exports = {
         }
 
         /**
-         * Check whether the code represented by an AST node is enclosed in parentheses.
-         * @param {!Object} node The node to test.
-         * @returns {boolean} `true` if the code is enclosed in parentheses; otherwise, `false`.
-         */
-        function isParenthesised(node) {
-            const previousToken = sourceCode.getTokenBefore(node),
-                nextToken = sourceCode.getTokenAfter(node);
-
-            return previousToken.value === "(" && previousToken.range[1] <= node.range[0] &&
-                nextToken.value === ")" && nextToken.range[0] >= node.range[1];
-        }
-
-        /**
          * Check whether the code represented by an AST node is enclosed in two sets of parentheses.
          * @param {!Object} node The node to test.
          * @returns {boolean} `true` if the code is enclosed in two sets of parentheses; otherwise, `false`.
@@ -88,9 +96,9 @@ module.exports = {
             const previousToken = sourceCode.getTokenBefore(node, 1),
                 nextToken = sourceCode.getTokenAfter(node, 1);
 
-            return isParenthesised(node) &&
-                previousToken.value === "(" && previousToken.range[1] <= node.range[0] &&
-                nextToken.value === ")" && nextToken.range[0] >= node.range[1];
+            return astUtils.isParenthesised(sourceCode, node) &&
+                previousToken && astUtils.isOpeningParenToken(previousToken) && previousToken.range[1] <= node.range[0] &&
+                astUtils.isClosingParenToken(nextToken) && nextToken.range[0] >= node.range[1];
         }
 
         /**
@@ -102,16 +110,14 @@ module.exports = {
             if (node.test &&
                 (node.test.type === "AssignmentExpression") &&
                 (node.type === "ForStatement"
-                    ? !isParenthesised(node.test)
+                    ? !astUtils.isParenthesised(sourceCode, node.test)
                     : !isParenthesisedTwice(node.test)
                 )
             ) {
 
-                // must match JSHint's error message
                 context.report({
-                    node,
-                    loc: node.test.loc.start,
-                    message: "Expected a conditional expression and instead saw an assignment."
+                    node: node.test,
+                    messageId: "missing"
                 });
             }
         }
@@ -125,9 +131,13 @@ module.exports = {
             const ancestor = findConditionalAncestor(node);
 
             if (ancestor) {
-                context.report({ node: ancestor, message: "Unexpected assignment within {{type}}.", data: {
-                    type: NODE_DESCRIPTIONS[ancestor.type] || ancestor.type
-                } });
+                context.report({
+                    node,
+                    messageId: "unexpected",
+                    data: {
+                        type: NODE_DESCRIPTIONS[ancestor.type] || ancestor.type
+                    }
+                });
             }
         }
 
@@ -141,7 +151,8 @@ module.exports = {
             DoWhileStatement: testForAssign,
             ForStatement: testForAssign,
             IfStatement: testForAssign,
-            WhileStatement: testForAssign
+            WhileStatement: testForAssign,
+            ConditionalExpression: testForAssign
         };
 
     }

@@ -2,6 +2,8 @@
 
 var SAX = require('sax'),
     JSAPI = require('./jsAPI.js'),
+    CSSClassList = require('./css-class-list'),
+    CSSStyleDeclaration = require('./css-style-declaration'),
     entityDeclaration = /<!ENTITY\s+(\S+)\s+(?:'([^\']+)'|"([^\"]+)")\s*>/g;
 
 var config = {
@@ -22,7 +24,7 @@ var config = {
 module.exports = function(data, callback) {
 
     var sax = SAX.parser(config.strict, config),
-        root = new JSAPI({ elem: '#document' }),
+        root = new JSAPI({ elem: '#document', content: [] }),
         current = root,
         stack = [root],
         textContext = null,
@@ -85,13 +87,24 @@ module.exports = function(data, callback) {
         var elem = {
             elem: data.name,
             prefix: data.prefix,
-            local: data.local
+            local: data.local,
+            attrs: {}
         };
 
-        if (Object.keys(data.attributes).length) {
-            elem.attrs = {};
+        elem.class = new CSSClassList(elem);
+        elem.style = new CSSStyleDeclaration(elem);
 
+        if (Object.keys(data.attributes).length) {
             for (var name in data.attributes) {
+
+                if (name === 'class') { // has class attribute
+                    elem.class.hasClass();
+                }
+
+                if (name === 'style') { // has style attribute
+                    elem.style.hasStyle();
+                }
+
                 elem.attrs[name] = {
                     name: name,
                     value: data.attributes[name].value,

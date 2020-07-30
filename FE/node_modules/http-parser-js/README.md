@@ -1,10 +1,6 @@
 # HTTP Parser
 
-This library parses HTTP protocol for requests and responses.  It was created to replace `http_parser.c` since calling C++ function from JS is really slow in V8.
-
-This was further modified by Jimbly to be useable in parsing responses, specifically tested with the "request" module, and addresses issues such as corrupt HTTP headers, which would otherwise cause Node's parser to throw a fatal error (HPE_INVALID_HEADER_TOKEN).
-
-Jan Schär (jscissr) made some bigger changes and added tests. This fixed some bugs and added many missing features.
+This library parses HTTP protocol for requests and responses.  It was created to replace `http_parser.c` since calling C++ function from JS is really slow in V8.  However, it is now primarily useful in having a more flexible/tolerant HTTP parser when dealing with legacy services that do not meet the strict HTTP parsing rules Node's parser follows.
 
 This is packaged as a standalone npm module.  To use in node, monkeypatch HTTPParser.
 
@@ -22,7 +18,13 @@ Simply do `npm test`. The tests are copied from node and mscedex/io.js, with som
 
 ## Status
 
-This should now be usable in any node application, it now supports (nearly) everything `http_parser.c` does while still being tolerant with corrupted headers.
+This should now be usable in any node application, it now supports (nearly) everything `http_parser.c` does while still being tolerant with corrupted headers, and other kinds of malformed data.
+
+### Node Versions
+
+`http-parser-js` should work via monkey-patching on Node v6-v11, and v13.
+
+Node v12.x renamed the internal http parser, and did not expose it for monkey-patching, so to be able to monkey-patch on Node v12, you must run `node --http-parser=legacy file.js` to opt in to the old, monkey-patchable http_parser binding.
 
 ## License
 

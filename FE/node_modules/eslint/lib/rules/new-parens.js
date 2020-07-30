@@ -6,28 +6,14 @@
 "use strict";
 
 //------------------------------------------------------------------------------
-// Helpers
+// Requirements
 //------------------------------------------------------------------------------
 
-/**
- * Checks whether the given token is an opening parenthesis or not.
- *
- * @param {Token} token - The token to check.
- * @returns {boolean} `true` if the token is an opening parenthesis.
- */
-function isOpeningParen(token) {
-    return token.type === "Punctuator" && token.value === "(";
-}
+const astUtils = require("./utils/ast-utils");
 
-/**
- * Checks whether the given token is an closing parenthesis or not.
- *
- * @param {Token} token - The token to check.
- * @returns {boolean} `true` if the token is an closing parenthesis.
- */
-function isClosingParen(token) {
-    return token.type === "Punctuator" && token.value === ")";
-}
+//------------------------------------------------------------------------------
+// Helpers
+//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -35,36 +21,77 @@ function isClosingParen(token) {
 
 module.exports = {
     meta: {
+        type: "layout",
+
         docs: {
-            description: "require parentheses when invoking a constructor with no arguments",
+            description: "enforce or disallow parentheses when invoking a constructor with no arguments",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/new-parens"
         },
 
-        schema: [],
-
-        fixable: "code"
+        fixable: "code",
+        schema: {
+            anyOf: [
+                {
+                    type: "array",
+                    items: [
+                        {
+                            enum: ["always", "never"]
+                        }
+                    ],
+                    minItems: 0,
+                    maxItems: 1
+                }
+            ]
+        },
+        messages: {
+            missing: "Missing '()' invoking a constructor.",
+            unnecessary: "Unnecessary '()' invoking a constructor with no arguments."
+        }
     },
 
     create(context) {
+        const options = context.options;
+        const always = options[0] !== "never"; // Default is always
+
         const sourceCode = context.getSourceCode();
 
         return {
             NewExpression(node) {
                 if (node.arguments.length !== 0) {
-                    return;  // shortcut: if there are arguments, there have to be parens
+                    return; // if there are arguments, there have to be parens
                 }
 
                 const lastToken = sourceCode.getLastToken(node);
-                const hasLastParen = lastToken && isClosingParen(lastToken);
-                const hasParens = hasLastParen && isOpeningParen(sourceCode.getTokenBefore(lastToken));
+                const hasLastParen = lastToken && astUtils.isClosingParenToken(lastToken);
 
-                if (!hasParens) {
-                    context.report({
-                        node,
-                        message: "Missing '()' invoking a constructor.",
-                        fix: fixer => fixer.insertTextAfter(node, "()")
-                    });
+                // `hasParens` is true only if the new expression ends with its own parens, e.g., new new foo() does not end with its own parens
+                const hasParens = hasLastParen &&
+                    astUtils.isOpeningParenToken(sourceCode.getTokenBefore(lastToken)) &&
+                    node.callee.range[1] < node.range[1];
+
+                if (always) {
+                    if (!hasParens) {
+                        context.report({
+                            node,
+                            messageId: "missing",
+                            fix: fixer => fixer.insertTextAfter(node, "()")
+                        });
+                    }
+                } else {
+                    if (hasParens) {
+                        context.report({
+                            node,
+                            messageId: "unnecessary",
+                            fix: fixer => [
+                                fixer.remove(sourceCode.getTokenBefore(lastToken)),
+                                fixer.remove(lastToken),
+                                fixer.insertTextBefore(node, "("),
+                                fixer.insertTextAfter(node, ")")
+                            ]
+                        });
+                    }
                 }
             }
         };

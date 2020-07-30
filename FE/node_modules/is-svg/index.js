@@ -1,11 +1,11 @@
 'use strict';
-var htmlCommentRegex = require('html-comment-regex');
+const htmlCommentRegex = require('html-comment-regex');
 
 function isBinary(buf) {
-	var isBuf = Buffer.isBuffer(buf);
+	const isBuf = Buffer.isBuffer(buf);
 
-	for (var i = 0; i < 24; i++) {
-		var charCode = isBuf ? buf[i] : buf.charCodeAt(i);
+	for (let i = 0; i < 24; i++) {
+		const charCode = isBuf ? buf[i] : buf.charCodeAt(i);
 
 		if (charCode === 65533 || charCode <= 8) {
 			return true;
@@ -15,6 +15,6 @@ function isBinary(buf) {
 	return false;
 }
 
-module.exports = function (buf) {
-	return !isBinary(buf) && /^\s*(?:<\?xml[^>]*>\s*)?(?:<!doctype svg[^>]*\s*(?:<![^>]*>)*[^>]*>\s*)?<svg[^>]*>[^]*<\/svg>\s*$/i.test(buf.toString().replace(htmlCommentRegex, ''));
-};
+const regex = /^\s*(?:<\?xml[^>]*>\s*)?(?:<!doctype svg[^>]*\s*(?:\[?(?:\s*<![^>]*>\s*)*\]?)*[^>]*>\s*)?<svg[^>]*>[^]*<\/svg>\s*$/i;
+
+module.exports = input => Boolean(input) && !isBinary(input) && regex.test(input.toString().replace(htmlCommentRegex, ''));

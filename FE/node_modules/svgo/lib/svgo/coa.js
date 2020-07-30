@@ -1,17 +1,23 @@
 /* jshint quotmark: false */
 'use strict';
 
-require('colors');
-
 var FS = require('fs'),
     PATH = require('path'),
+    chalk = require('chalk'),
+    mkdirp = require('mkdirp'),
+    promisify = require('util.promisify'),
+    readdir = promisify(FS.readdir),
+    readFile = promisify(FS.readFile),
+    writeFile = promisify(FS.writeFile),
     SVGO = require('../svgo.js'),
     YAML = require('js-yaml'),
     PKG = require('../../package.json'),
-    mkdirp = require('mkdirp'),
     encodeSVGDatauri = require('./tools.js').encodeSVGDatauri,
     decodeSVGDatauri = require('./tools.js').decodeSVGDatauri,
-    regSVGFile = /\.svg$/;
+    checkIsDir = require('./tools.js').checkIsDir,
+    regSVGFile = /\.svg$/,
+    noop = () => {},
+    svgo;
 
 /**
  * Command-Option-Argument.
@@ -37,6 +43,7 @@ module.exports = require('coa').Cmd()
     .opt()
         .name('input').title('Input file, "-" for STDIN')
         .short('i').long('input')
+        .arr()
         .val(function(val) {
             return val || this.reject("Option '--input' must have a value.");
         })
@@ -55,6 +62,7 @@ module.exports = require('coa').Cmd()
     .opt()
         .name('output').title('Output file or folder (by default the same as the input), "-" for STDOUT')
         .short('o').long('output')
+        .arr()
         .val(function(val) {
             return val || this.reject("Option '--output' must have a value.");
         })
@@ -74,7 +82,7 @@ module.exports = require('coa').Cmd()
         })
         .end()
     .opt()
-        .name('disable').title('Disable plugin by name')
+        .name('disable').title('Disable plugin by name, "--disable={PLUGIN1,PLUGIN2}" for multiple plugins (*nix)')
         .long('disable')
         .arr()
         .val(function(val) {
@@ -82,7 +90,7 @@ module.exports = require('coa').Cmd()
         })
         .end()
     .opt()
-        .name('enable').title('Enable plugin by name')
+        .name('enable').title('Enable plugin by name, "--enable={PLUGIN3,PLUGIN4}" for multiple plugins (*nix)')
         .long('enable')
         .arr()
         .val(function(val) {
@@ -97,7 +105,7 @@ module.exports = require('coa').Cmd()
         })
         .end()
     .opt()
-        .name('multipass').title('Enable multipass')
+        .name('multipass').title('Pass over SVGs multiple times to ensure all optimizations are applied')
         .long('multipass')
         .flag()
         .end()
@@ -114,6 +122,11 @@ module.exports = require('coa').Cmd()
         })
         .end()
     .opt()
+        .name('recursive').title('Use with \'-f\'. Optimizes *.svg files in folders recursively.')
+        .short('r').long('recursive')
+        .flag()
+        .end()
+    .opt()
         .name('quiet').title('Only output error messages, not regular status messages')
         .short('q').long('quiet')
         .flag()
@@ -125,70 +138,66 @@ module.exports = require('coa').Cmd()
         .end()
     .arg()
         .name('input').title('Alias to --input')
-        .end()
-    .arg()
-        .name('output').title('Alias to --output')
+        .arr()
         .end()
     .act(function(opts, args) {
-
-        var input = args && args.input ? args.input : opts.input,
-            output = args && args.output ? args.output : opts.output,
+        var input = opts.input || args.input,
+            output = opts.output,
             config = {};
 
         // --show-plugins
         if (opts['show-plugins']) {
-
             showAvailablePlugins();
-            process.exit(0);
-
+            return;
         }
 
         // w/o anything
         if (
-            (!input || input === '-') &&
+            (!input || input[0] === '-') &&
             !opts.string &&
             !opts.stdin &&
             !opts.folder &&
-            process.stdin.isTTY
+            process.stdin.isTTY === true
         ) return this.usage();
 
+        if (typeof process == 'object' && process.versions && process.versions.node && PKG && PKG.engines.node) {
+            var nodeVersion = String(PKG.engines.node).match(/\d*(\.\d+)*/)[0];
+            if (parseFloat(process.versions.node) < parseFloat(nodeVersion)) {
+                return printErrorAndExit(`Error: ${PKG.name} requires Node.js version ${nodeVersion} or higher.`);
+            }
+        }
 
         // --config
         if (opts.config) {
-
             // string
             if (opts.config.charAt(0) === '{') {
                 try {
                     config = JSON.parse(opts.config);
                 } catch (e) {
-                    console.error("Error: Couldn't parse config JSON.");
-                    console.error(String(e));
-                    return;
+                    return printErrorAndExit(`Error: Couldn't parse config JSON.\n${String(e)}`);
                 }
-
             // external file
             } else {
-                var configPath = PATH.resolve(opts.config);
+                var configPath = PATH.resolve(opts.config),
+                    configData;
                 try {
                     // require() adds some weird output on YML files
-                    config = JSON.parse(FS.readFileSync(configPath, 'utf8'));
+                    configData = FS.readFileSync(configPath, 'utf8');
+                    config = JSON.parse(configData);
                 } catch (err) {
                     if (err.code === 'ENOENT') {
-                        console.error('Error: couldn\'t find config file \'' + opts.config + '\'.');
-                        return;
+                        return printErrorAndExit(`Error: couldn't find config file '${opts.config}'.`);
                     } else if (err.code === 'EISDIR') {
-                        console.error('Error: directory \'' + opts.config + '\' is not a config file.');
-                        return;
+                        return printErrorAndExit(`Error: directory '${opts.config}' is not a config file.`);
                     }
-                    config = YAML.safeLoad(FS.readFileSync(configPath, 'utf8'));
+                    config = YAML.safeLoad(configData);
+                    config.__DIR = PATH.dirname(configPath); // will use it to resolve custom plugins defined via path
 
                     if (!config || Array.isArray(config)) {
-                        console.error('Error: invalid config file \'' + opts.config + '\'.');
-                        return;
+                        return printErrorAndExit(`Error: invalid config file '${opts.config}'.`);
                     }
                 }
             }
-
         }
 
         // --quiet
@@ -196,9 +205,17 @@ module.exports = require('coa').Cmd()
             config.quiet = opts.quiet;
         }
 
+        // --recursive
+        if (opts.recursive) {
+            config.recursive = opts.recursive;
+        }
+
         // --precision
         if (opts.precision) {
-            config.floatPrecision = Math.max(0, parseInt(opts.precision));
+            var precision = Math.min(Math.max(0, parseInt(opts.precision)), 20);
+            if (!isNaN(precision)) {
+                config.floatPrecision = precision;
+            }
         }
 
         // --disable
@@ -213,162 +230,74 @@ module.exports = require('coa').Cmd()
 
         // --multipass
         if (opts.multipass) {
-
             config.multipass = true;
-
         }
 
         // --pretty
         if (opts.pretty) {
-
             config.js2svg = config.js2svg || {};
             config.js2svg.pretty = true;
-            if (opts.indent) {
-                config.js2svg.indent = parseInt(opts.indent, 10);
+            var indent;
+            if (opts.indent && !isNaN(indent = parseInt(opts.indent))) {
+                config.js2svg.indent = indent;
             }
-
         }
 
+        svgo = new SVGO(config);
+
         // --output
-        if (opts.output) {
-            config.output = opts.output;
+        if (output) {
+            if (input && input[0] != '-') {
+                if (output.length == 1 && checkIsDir(output[0])) {
+                    var dir = output[0];
+                    for (var i = 0; i < input.length; i++) {
+                        output[i] = checkIsDir(input[i]) ? input[i] : PATH.resolve(dir, PATH.basename(input[i]));
+                    }
+                } else if (output.length < input.length) {
+                    output = output.concat(input.slice(output.length));
+                }
+            }
+        } else if (input) {
+            output = input;
+        } else if (opts.string) {
+            output = '-';
+        }
+
+        if (opts.datauri) {
+            config.datauri = opts.datauri;
         }
 
         // --folder
         if (opts.folder) {
-            optimizeFolder(opts.folder, config, output);
-
-            return;
+            var ouputFolder = output && output[0] || opts.folder;
+            return optimizeFolder(config, opts.folder, ouputFolder).then(noop, printErrorAndExit);
         }
 
         // --input
         if (input) {
-
             // STDIN
-            if (input === '-') {
+            if (input[0] === '-') {
+                return new Promise((resolve, reject) => {
+                    var data = '',
+                        file = output[0];
 
-                var data = '';
-
-                process.stdin.pause();
-
-                process.stdin
-                    .on('data', function(chunk) {
-                        data += chunk;
-                    })
-                    .once('end', function() {
-                        optimizeFromString(data, config, opts.datauri, input, output);
-                    })
-                    .resume();
-
+                    process.stdin
+                        .on('data', chunk => data += chunk)
+                        .once('end', () => processSVGData(config, {input: 'string'}, data, file).then(resolve, reject));
+                });
             // file
             } else {
-
-                FS.readFile(input, 'utf8', function(err, data) {
-                    if (err) {
-                        if (err.code === 'EISDIR')
-                            optimizeFolder(input, config, output);
-                        else if (err.code === 'ENOENT')
-                            console.error('Error: no such file or directory \'' + input + '\'.');
-                        else
-                            console.error(err);
-                        return;
-                    }
-                    optimizeFromString(data, config, opts.datauri, input, output);
-                });
-
+                return Promise.all(input.map((file, n) => optimizeFile(config, file, output[n])))
+                    .then(noop, printErrorAndExit);
             }
 
         // --string
         } else if (opts.string) {
+            var data = decodeSVGDatauri(opts.string);
 
-            opts.string = decodeSVGDatauri(opts.string);
-
-            optimizeFromString(opts.string, config, opts.datauri, input, output);
-
+            return processSVGData(config, {input: 'string'}, data, output[0]);
         }
     });
-
-function optimizeFromString(svgstr, config, datauri, input, output) {
-
-    var startTime = Date.now(config),
-        time,
-        inBytes = Buffer.byteLength(svgstr, 'utf8'),
-        outBytes,
-        svgo = new SVGO(config);
-
-    svgo.optimize(svgstr, function(result) {
-
-        if (result.error) {
-            console.error(result.error);
-            return;
-        }
-
-        if (datauri) {
-            result.data = encodeSVGDatauri(result.data, datauri);
-        }
-
-        outBytes = Buffer.byteLength(result.data, 'utf8');
-        time = Date.now() - startTime;
-
-        // stdout
-        if (output === '-' || (!input || input === '-') && !output) {
-
-            process.stdout.write(result.data + '\n');
-
-        // file
-        } else {
-
-            // overwrite input file if there is no output
-            if (!output && input) {
-                output = input;
-            }
-
-            if (!config.quiet) {
-                console.log('\r');
-            }
-
-            saveFileAndPrintInfo(config, result.data, output, inBytes, outBytes, time);
-
-        }
-
-    });
-
-}
-
-function saveFileAndPrintInfo(config, data, path, inBytes, outBytes, time) {
-
-    FS.writeFile(path, data, 'utf8', function() {
-        if (config.quiet) {
-            return;
-        }
-
-        // print time info
-        printTimeInfo(time);
-
-        // print optimization profit info
-        printProfitInfo(inBytes, outBytes);
-
-    });
-
-}
-
-function printTimeInfo(time) {
-    console.log('Done in ' + time + ' ms!');
-
-}
-
-function printProfitInfo(inBytes, outBytes) {
-
-    var profitPercents = 100 - outBytes * 100 / inBytes;
-
-    console.log(
-        (Math.round((inBytes / 1024) * 1000) / 1000) + ' KiB' +
-        (profitPercents < 0 ? ' + ' : ' - ') +
-        String(Math.abs((Math.round(profitPercents * 10) / 10)) + '%').green + ' = ' +
-        (Math.round((outBytes / 1024) * 1000) / 1000) + ' KiB\n'
-    );
-
-}
 
 /**
  * Change plugins state by names array.
@@ -379,17 +308,15 @@ function printProfitInfo(inBytes, outBytes) {
  * @return {Object} changed config
  */
 function changePluginsState(names, state, config) {
+    names.forEach(flattenPluginsCbk);
 
     // extend config
     if (config.plugins) {
-
-        names.forEach(function(name) {
-
-            var matched,
+        for (var name of names) {
+            var matched = false,
                 key;
 
-            config.plugins.forEach(function(plugin) {
-
+            for (var plugin of config.plugins) {
                 // get plugin name
                 if (typeof plugin === 'object') {
                     key = Object.keys(plugin)[0];
@@ -403,179 +330,250 @@ function changePluginsState(names, state, config) {
                     if (typeof plugin[key] !== 'object' || !state) {
                         plugin[key] = state;
                     }
-
                     // mark it as matched
                     matched = true;
                 }
-
-            });
+            }
 
             // if not matched and current config is not full
             if (!matched && !config.full) {
-
-                var obj = {};
-
-                obj[name] = state;
-
                 // push new plugin Object
-                config.plugins.push(obj);
-
+                config.plugins.push({ [name]: state });
                 matched = true;
-
             }
-
-        });
-
+        }
     // just push
     } else {
-
-        config.plugins = [];
-
-        names.forEach(function(name) {
-            var obj = {};
-
-            obj[name] = state;
-
-            config.plugins.push(obj);
-        });
-
+        config.plugins = names.map(name => ({ [name]: state }));
     }
-
     return config;
-
 }
 
-function optimizeFolder(dir, config, output) {
+/**
+ * Flatten an array of plugins by invoking this callback on each element
+ * whose value may be a comma separated list of plugins.
+ *
+ * @param {String} name Plugin name
+ * @param {Number} index Plugin index
+ * @param {Array} names Plugins being traversed
+ */
+function flattenPluginsCbk(name, index, names)
+{
+    var split = name.split(',');
 
-    var svgo = new SVGO(config);
-
-    if (!config.quiet) {
-        console.log('Processing directory \'' + dir + '\':\n');
+    if(split.length > 1) {
+        names[index] = split.shift();
+        names.push.apply(names, split);
     }
 
-    // absoluted folder path
-    var path = PATH.resolve(dir);
+}
 
-    // list folder content
-    FS.readdir(path, function(err, files) {
+/**
+ * Optimize SVG files in a directory.
+ * @param {Object} config options
+ * @param {string} dir input directory
+ * @param {string} output output directory
+ * @return {Promise}
+ */
+function optimizeFolder(config, dir, output) {
+    if (!config.quiet) {
+        console.log(`Processing directory '${dir}':\n`);
+    }
+    return readdir(dir).then(files => processDirectory(config, dir, files, output));
+}
 
-        if (err) {
-            console.error(err);
-            return;
+/**
+ * Process given files, take only SVG.
+ * @param {Object} config options
+ * @param {string} dir input directory
+ * @param {Array} files list of file names in the directory
+ * @param {string} output output directory
+ * @return {Promise}
+ */
+function processDirectory(config, dir, files, output) {
+    // take only *.svg files, recursively if necessary
+    var svgFilesDescriptions = getFilesDescriptions(config, dir, files, output);
+
+    return svgFilesDescriptions.length ?
+        Promise.all(svgFilesDescriptions.map(fileDescription => optimizeFile(config, fileDescription.inputPath, fileDescription.outputPath))) :
+        Promise.reject(new Error(`No SVG files have been found in '${dir}' directory.`));
+}
+
+/**
+ * Get svg files descriptions
+ * @param {Object} config options
+ * @param {string} dir input directory
+ * @param {Array} files list of file names in the directory
+ * @param {string} output output directory
+ * @return {Array}
+ */
+function getFilesDescriptions(config, dir, files, output) {
+    const filesInThisFolder = files
+        .filter(name => regSVGFile.test(name))
+        .map(name => ({
+            inputPath: PATH.resolve(dir, name),
+            outputPath: PATH.resolve(output, name),
+        }));
+
+    return config.recursive ?
+        [].concat(
+            filesInThisFolder,
+            files
+                .filter(name => checkIsDir(PATH.resolve(dir, name)))
+                .map(subFolderName => {
+                    const subFolderPath = PATH.resolve(dir, subFolderName);
+                    const subFolderFiles = FS.readdirSync(subFolderPath);
+                    const subFolderOutput = PATH.resolve(output, subFolderName);
+                    return getFilesDescriptions(config, subFolderPath, subFolderFiles, subFolderOutput);
+                })
+                .reduce((a, b) => [].concat(a, b), [])
+        ) :
+        filesInThisFolder;
+}
+
+/**
+ * Read SVG file and pass to processing.
+ * @param {Object} config options
+ * @param {string} file
+ * @param {string} output
+ * @return {Promise}
+ */
+function optimizeFile(config, file, output) {
+    return readFile(file, 'utf8').then(
+        data => processSVGData(config, {input: 'file', path: file}, data, output, file),
+        error => checkOptimizeFileError(config, file, output, error)
+    );
+}
+
+/**
+ * Optimize SVG data.
+ * @param {Object} config options
+ * @param {string} data SVG content to optimize
+ * @param {string} output where to write optimized file
+ * @param {string} [input] input file name (being used if output is a directory)
+ * @return {Promise}
+ */
+function processSVGData(config, info, data, output, input) {
+    var startTime = Date.now(),
+        prevFileSize = Buffer.byteLength(data, 'utf8');
+
+    return svgo.optimize(data, info).then(function(result) {
+        if (config.datauri) {
+            result.data = encodeSVGDatauri(result.data, config.datauri);
         }
+        var resultFileSize = Buffer.byteLength(result.data, 'utf8'),
+            processingTime = Date.now() - startTime;
 
-        if (!files.length) {
-            console.log('Directory \'' + dir + '\' is empty.');
-            return;
-        }
-
-        var i = 0,
-            found = false;
-
-        function optimizeFile(file) {
-
-            // absoluted file path
-            var filepath = PATH.resolve(path, file);
-            var outfilepath = output ? PATH.resolve(output, file) : filepath;
-
-            // check if file name matches *.svg
-            if (regSVGFile.test(filepath)) {
-
-                found = true;
-                FS.readFile(filepath, 'utf8', function(err, data) {
-
-                    if (err) {
-                        console.error(err);
-                        return;
-                    }
-
-                    var startTime = Date.now(),
-                        time,
-                        inBytes = Buffer.byteLength(data, 'utf8'),
-                        outBytes;
-
-                    svgo.optimize(data, function(result) {
-
-                        if (result.error) {
-                            console.error(result.error);
-                            return;
-                        }
-
-                        outBytes = Buffer.byteLength(result.data, 'utf8');
-                        time = Date.now() - startTime;
-
-                        writeOutput();
-
-                        function writeOutput() {
-                            FS.writeFile(outfilepath, result.data, 'utf8', report);
-                        }
-
-                        function report(err) {
-
-                            if (err) {
-                                if (err.code === 'ENOENT') {
-                                    mkdirp(output, writeOutput);
-                                    return;
-                                } else if (err.code === 'ENOTDIR') {
-                                    console.error('Error: output \'' + output + '\' is not a directory.');
-                                    return;
-                                }
-                                console.error(err);
-                                return;
-                            }
-
-                            if (!config.quiet) {
-                                console.log(file + ':');
-
-                                // print time info
-                                printTimeInfo(time);
-
-                                // print optimization profit info
-                                printProfitInfo(inBytes, outBytes);
-                            }
-
-                            //move on to the next file
-                            if (++i < files.length) {
-                                optimizeFile(files[i]);
-                            }
-
-                        }
-
-                    });
-
-                });
-
+        return writeOutput(input, output, result.data).then(function() {
+            if (!config.quiet && output != '-') {
+                if (input) {
+                    console.log(`\n${PATH.basename(input)}:`);
+                }
+                printTimeInfo(processingTime);
+                printProfitInfo(prevFileSize, resultFileSize);
             }
-            //move on to the next file
-            else if (++i < files.length) {
-                optimizeFile(files[i]);
-            } else if (!found) {
-                console.log('No SVG files have been found.');
-            }
-
-
-        }
-
-        optimizeFile(files[i]);
-
+        },
+        error => Promise.reject(new Error(error.code === 'ENOTDIR' ? `Error: output '${output}' is not a directory.` : error)));
     });
+}
 
+/**
+ * Write result of an optimization.
+ * @param {string} input
+ * @param {string} output output file name. '-' for stdout
+ * @param {string} data data to write
+ * @return {Promise}
+ */
+function writeOutput(input, output, data) {
+    if (output == '-') {
+        console.log(data);
+        return Promise.resolve();
+    }
+
+    mkdirp.sync(PATH.dirname(output));
+
+    return writeFile(output, data, 'utf8').catch(error => checkWriteFileError(input, output, data, error));
 }
 
 
-var showAvailablePlugins = function () {
+/**
+ * Write a time taken by optimization.
+ * @param {number} time time in milliseconds.
+ */
+function printTimeInfo(time) {
+    console.log(`Done in ${time} ms!`);
+}
 
-    var svgo = new SVGO(),
-        // Flatten an array of plugins grouped per type and sort alphabetically
-        list = Array.prototype.concat.apply([], svgo.config.plugins).sort(function(a, b) {
-            return a.name > b.name ? 1 : -1;
-        });
+/**
+ * Write optimizing information in human readable format.
+ * @param {number} inBytes size before optimization.
+ * @param {number} outBytes size after optimization.
+ */
+function printProfitInfo(inBytes, outBytes) {
+    var profitPercents = 100 - outBytes * 100 / inBytes;
 
+    console.log(
+        (Math.round((inBytes / 1024) * 1000) / 1000) + ' KiB' +
+        (profitPercents < 0 ? ' + ' : ' - ') +
+        chalk.green(Math.abs((Math.round(profitPercents * 10) / 10)) + '%') + ' = ' +
+        (Math.round((outBytes / 1024) * 1000) / 1000) + ' KiB'
+    );
+}
+
+/**
+ * Check for errors, if it's a dir optimize the dir.
+ * @param {Object} config
+ * @param {string} input
+ * @param {string} output
+ * @param {Error} error
+ * @return {Promise}
+ */
+function checkOptimizeFileError(config, input, output, error) {
+    if (error.code == 'EISDIR') {
+        return optimizeFolder(config, input, output);
+    } else if (error.code == 'ENOENT') {
+        return Promise.reject(new Error(`Error: no such file or directory '${error.path}'.`));
+    }
+    return Promise.reject(error);
+}
+
+/**
+ * Check for saving file error. If the output is a dir, then write file there.
+ * @param {string} input
+ * @param {string} output
+ * @param {string} data
+ * @param {Error} error
+ * @return {Promise}
+ */
+function checkWriteFileError(input, output, data, error) {
+    if (error.code == 'EISDIR' && input) {
+        return writeFile(PATH.resolve(output, PATH.basename(input)), data, 'utf8');
+    } else {
+        return Promise.reject(error);
+    }
+}
+
+/**
+ * Show list of available plugins with short description.
+ */
+function showAvailablePlugins() {
     console.log('Currently available plugins:');
 
-    list.forEach(function (plugin) {
-        console.log(' [ ' + plugin.name.green + ' ] ' + plugin.description);
-    });
+    // Flatten an array of plugins grouped per type, sort and write output
+    var list = [].concat.apply([], new SVGO().config.plugins)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(plugin => ` [ ${chalk.green(plugin.name)} ] ${plugin.description}`)
+        .join('\n');
+    console.log(list);
+}
 
-    //console.log(JSON.stringify(svgo, null, 4));
-};
+/**
+ * Write an error and exit.
+ * @param {Error} error
+ * @return {Promise} a promise for running tests
+ */
+function printErrorAndExit(error) {
+    console.error(chalk.red(error));
+    process.exit(1);
+    return Promise.reject(error); // for tests
+}

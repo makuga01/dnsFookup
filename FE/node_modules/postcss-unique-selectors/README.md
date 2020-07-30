@@ -1,4 +1,4 @@
-# [postcss][postcss]-unique-selectors [![Build Status](https://travis-ci.org/ben-eb/postcss-unique-selectors.svg?branch=master)][ci] [![NPM version](https://badge.fury.io/js/postcss-unique-selectors.svg)][npm] [![Dependency Status](https://gemnasium.com/ben-eb/postcss-unique-selectors.svg)][deps]
+# [postcss][postcss]-unique-selectors
 
 > Ensure CSS selectors are unique.
 
@@ -35,16 +35,12 @@ h1,h2,h3 {
 See the [PostCSS documentation](https://github.com/postcss/postcss#usage) for
 examples for your environment.
 
-## Contributing
+## Contributors
 
-Pull requests are welcome. If you add functionality, then please add unit tests
-to cover it.
+See [CONTRIBUTORS.md](https://github.com/cssnano/cssnano/blob/master/CONTRIBUTORS.md).
 
 ## License
 
 MIT © [Ben Briggs](http://beneb.info)
 
-[ci]:      https://travis-ci.org/ben-eb/postcss-unique-selectors
-[deps]:    https://gemnasium.com/ben-eb/postcss-unique-selectors
-[npm]:     http://badge.fury.io/js/postcss-unique-selectors
 [postcss]: https://github.com/postcss/postcss

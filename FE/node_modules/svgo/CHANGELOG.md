@@ -1,8 +1,120 @@
+### [ [>](https://github.com/svg/svgo/tree/v1.3.2) ] 1.3.2 / 30.10.2019
+* Fixed TypeError: Cannot set property 'multipassCount' of undefined
+
+### [ [>](https://github.com/svg/svgo/tree/v1.3.1) ] 1.3.1 / 29.10.2019
+* Updated CSSO version to 4.0.2 fixing the issue with empty semicolons ";;" in styles (thanks to @strarsis and @lahmatiy).
+* `prefixIds` plugin now runs only once with `--multipass` option (by @strarsis).
+* `cleanupIDs` plugin is prevented from producing a preserved ID, including one which matches a preserved prefix, when minifying (by @thomsj).
+
+### [ [>](https://github.com/svg/svgo/tree/v1.3.0) ] 1.3.0 / 14.07.2019
+* Custom plugins now can be loaded from external js through `path` plugin param.
+* New plugin `convertEllipseToCircle` to convert ellipse with equal radius measures to circle (by @tigt).
+* New plugin `sortDefsChildren` for improved compression (by @davidleston).
+* SVGO now removes unnecessary spaces after `arcto` path command flags.
+* `removeDimensions` plugin now adds `viewBox` if it's missing (by @adipascu).
+* Fixed `removeUnusedNS` not counting attributes in `<svg>` tag itself.
+* Fixed an issue with incorrect processing multiple images (by @cyberalien).
+* Fixed an error with incorrect converting multiple segmented curve to an arc.
+* Fixed an error with matrix decomposition in `convertTransform` due to rounding error leading to illegal value.
+* Added `force` option for `mergePaths` plugin (by @goyney).
+* Added options to `prefixIds` plugin for selectively prefixing IDs and/or classes (by @strarsis).
+* Exported config function (by @1000ch).
+
+### [ [>](https://github.com/svg/svgo/tree/v1.2.2) ] 1.2.2 / 16.04.2019
+* Update js-yaml for Code Injection warning (by @kaungst).
+
+### [ [>](https://github.com/svg/svgo/tree/v1.2.1) ] 1.2.1 / 04.04.2019
+Some goodness from pull-requests.
+* Bump up js-yaml version to fix DoS vulnerability (by @eugestarr).
+
+### [ [>](https://github.com/svg/svgo/tree/v1.2.0) ] 1.2.0 / 24.02.2019
+Some goodness from pull-requests.
+* Fixed extra blank lines when processing many files (by @panczarny).
+* Added `--recursive` option to process folders recursevely with option `-f` (by @dartess).
+* Added `removeAttributesBySelector` plugin to remove elements matching a css selector (by @bmease).
+* Added `removeOffCanvasPaths` plugin to remove elements outside of the viewbox (by @JoshyPHP).
+* `removeAttrs` plugin: added `preserveCurrentColor` color (by @roblevintennis) and 3rd optional filter for a value (by @Herman-Freund).
+* Added `reusePaths` plugin to replace duplicated elements with link (by @jhowcrof).
+* Added support of comma-separated plugins list in `--disable` and `--enable` options (by @jmwebservices).
+* Added option to preserve IDs based on prefix in `cleanupIDs` plugin (by @bkotzz).
+* Replaced `colors` dependency with `chalk` (by @xPaw).
+
+### [ [>](https://github.com/svg/svgo/tree/v1.1.1) ] 1.1.1 / 17.09.2018
+* Fixed crash in `SVGO.optimize()` when ‘info’ is absent.
+* Removed extra space after `cleanupListOfValues` plugin.
+
+### [ [>](https://github.com/svg/svgo/tree/v1.1.0) ] 1.1.0 / 16.09.2018
+* Fixed `collapseGroups` plugin removing property with a child having `inherit` value.
+* `version` attribute value is not more being rounded.
+* Fixed jsAPI `clone` method with respect to the introduced CSS classes.
+* Fixed scaling strokes with `vector-effect="non-scaling-stroke"` (by @alexjlockwood).
+* Fixed passing properties from groups in `collapseGroups` plugin if child have a filter (by @stristr).
+* Fixed arc path commands parsing without separators after flags, effectively producing a JS error.
+* Fixed `viewBox` separators parsing.
+* Fixed `removeNonInheritableGroupAttrs` plugin to work as intended.
+* Fixed removing path segments without length in presence of `stroke-linecap`.
+* Fixed `removeUnknownsAndDefaults` plugin removing attributes from elements with `id`.
+* Fixed converting to large arcs from nearly straight lines curves.
+* Fixed `collapseGroups` plugin affecting `<switch>` and its subgroups.
+* Fixed `convertTransform` plugin converting to `rotate()` with wrong sign in some case.
+* Fixed `cleanupListOfValues` plugin not preserving non-numeric values.
+* Fixed `!important` being passed to attributes in `convertStyleToAttrs` plugin.
+* Added option `keepImportant` to `convertStyleToAttrs` plugin to preserve styles with `!important`.
+* `removeHiddenElems` plugin now also removes elements with `visibility="hidden"` attribute (by @mikolaj92).
+* Added `forceAbsolutePath` option to `convertPathData` plugin to always use absolute coordinates (by @cool).
+* Added `keepRoleAttr` for `removeUnknownsAndDefaults` plugin to preserve `role-` attributes (by @himedlooff).
+* Added `xmlns` order option in `sortAttrs` plugin (by @hellatan).
+* Added an option to `prefixIds` plugin to pass prefix as false or as a function that returns false (by @vzaidman).
+* `prefixIds` plugin now adds prefix to every class (by @vzaidman).
+* Updated and improved docs a bit (multiple authors).
+
+### [ [>](https://github.com/svg/svgo/tree/v1.0.5) ] 1.0.5 / 26.02.2018
+* Fixed issue with prefixIDs plugin not replacing url() values correctly (by @harrisjose).
+
+### [ [>](https://github.com/svg/svgo/tree/v1.0.4) ] 1.0.4 / 30.01.2018
+* Fixed bug with removing groups that are direct child of "<switch>".
+* Fixed bug with shorthand path points counting (thanks @alexjlockwood for noticing).
+* Fixed crash on parsing invalid transform, e.g. without close parenthesis.
+
+### [ [>](https://github.com/svg/svgo/tree/v1.0.3) ] 1.0.3 / 08.11.2017
+* Fixed `removeViewBox` plugin to check for zero start coordinates.
+* Removed extra info from STDOUT when it set to output.
+
+### [ [>](https://github.com/svg/svgo/tree/v1.0.2) ] 1.0.2 / 03.11.2017
+* Fixed a couple of errors related to `inlineStyles` plugin.
+* Updated some lost details in documentation to reflect v1.0 changes.
+
+### [ [>](https://github.com/svg/svgo/tree/v1.0.1) ] 1.0.1 / 31.10.2017
+* Fixed error “Object.defineProperty called on non-object” in images with `<foreignObject/>`.
+
+### [ [>](https://github.com/svg/svgo/tree/v1.0.0) ] 1.0.0 / 30.10.2017
+* SVGO now requires Node 4 or higher.
+* Changed CLI syntax to treat filenames as input, thus allowing `svgo *.svg` syntax.
+* `SVGO.optimize()` now returns `Promise`.
+* Added `datauri` option to JS API.
+* Added support for SVG 2 `href` attribute.
+* `cleanupIDs` now don't removes IDs if an image consists only of `defs`.
+* New plugin `inlineStyles` for converting styles from `<style>` element to attributes if possible (by @strarsis).
+* `cleanupNumericValues` now rounds values in `viewBox` (by @caub).
+* New plugin: `removeScriptElement` (disabled by default) to align with `removeStyleElement` (by @pklingem).
+* `minifyStyles` now removes styles based on usage with controlling options (by @lahmatiy).
+* New option `except` in `cleanupIDs` to keep IDs (by @Velenir).
+* New option `force` in `cleanupIDs` to work even if SVG contains `style` or `script` elements (by @Velenir).
+* Fixed arcs transforming with different signed `scale` parameters (by @JoshyPHP).
+* Fixed `removeUselessStrokeAndFill` to check for `style` or `script` elements per file (by @caub).
+* New option `keepAriaAttrs` in `removeUnknownsAndDefaults` (by @davidtheclark).
+* Corrected parsing in `cleanupIDs` to account animation syntax (by @caub).
+* `#ff0000` now converts to `red` as well as `#f00` (by @davidleston).
+* Added “gray” variation to colors list per CSS Color Module Level 4 (by @ydaniv).
+* Fixed error on empty files.
+* A separator character in `removeAttrs` now can be changed per `elemSeparator` option (by @mikestreety).
+* `addAttributesToSVGElement` now can add values to attributes.
+
 ### [ [>](https://github.com/svg/svgo/tree/v0.7.2) ] 0.7.2 / 29.01.2017
 * Extended `currentColor` match conditions (string, rx, bool) (by @AlimovSV)
 * Fixed removing `<animate>` in `<stop>`.
 * Fixed removing same transform in inner element in `removeUnknownsAndDefaults`.
-* Fixed collapsing groups with same non-inheritable attribue.
+* Fixed collapsing groups with same non-inheritable attribute.
 * Corrected removing of leading zero in case of exponential notation.
 
 ### [ [>](https://github.com/svg/svgo/tree/v0.7.1) ] 0.7.1 / 27.09.2016
@@ -26,7 +138,7 @@
 
 ### [ [>](https://github.com/svg/svgo/tree/v0.6.5) ] 0.6.5 / 25.04.2016
 * Extra content inserted by editors are now being removed within `<foreignObject>` as well thus fixing bug “Namespace prefix … is not defined“ after applying SVGO.
-* Doctype with entities declartion is now also being removed since svgo correctly parses them starting from the version [0.6.2](https://github.com/svg/svgo/tree/v0.6.2).
+* Doctype with entities declaration is now also being removed since svgo correctly parses them starting from the version [0.6.2](https://github.com/svg/svgo/tree/v0.6.2).
 * Corrected `moveGroupAttrsToElems` not to move attributes to `g` content if it's referenced (has an `id`).
 * `collapseGroups` now don't collapse a group if it has an animated attribute (SMIL).
 
@@ -48,10 +160,10 @@
 * Fixed error on converting curves to arcs.
 * Corrected rounding in subsequent passes with `--multipass` option.
 * Data URI option now handles charset (by @holymonson)
-* Tranformations are no longer moved to group if there is a mask (`plugins/moveElemsAttrsToGroup.js`).
+* Transformations are no longer moved to group if there is a mask (`plugins/moveElemsAttrsToGroup.js`).
 * Fixed matrix decomposition losing sign in case like `[1, 0, 0, -1, 0, 0]` (`scale(1 -1)`).
 * Fixed crash on uppercased color name.
-* Paths with `id` and without `stroke-width` aren't being trasformed now since `stroke-width` may be applied later.
+* Paths with `id` and without `stroke-width` aren't being transformed now since `stroke-width` may be applied later.
 
 ### [ [>](https://github.com/svg/svgo/tree/v0.6.1) ] 0.6.1 / 21.11.2015
 * Added option `--quiet` to suppress output (by @phihag).
@@ -63,9 +175,9 @@
 * New optimization: circular curves now being converted to arcs. A notable improvement for circles within paths.
 * New plugin “[minifyStyles](https://github.com/svg/svgo/blob/master/plugins/minifyStyles.js)” which minifies `<style>` elments content with CSSO by @strarsis (svgo still doesn't understand its content)
 * New plugin “[removeStyleElement](https://github.com/svg/svgo/blob/master/plugins/removeStyleElement.js)” (disabled by default) by @betsydupuis.
-* Fixed issues wuth parsing numbers with exponent fraction (could happen with high precision >= 7).
+* Fixed issues with parsing numbers with exponent fraction (could happen with high precision >= 7).
 * Fixed rounding error due to incorrect preserving of precision in transformations.
-* Fixed shortand curve distortion due to converted previous curve to not a curve.
+* Fixed shorthand curve distortion due to converted previous curve to not a curve.
 * Fixed interoperability issue with `precision` cli-option and `full` config.
 * Fixed an error produced by “[removeUnknownsAndDefaults](https://github.com/svg/svgo/blob/master/plugins/removeUnknownsAndDefaults.js)” by @thiakil
 * Another Inkscape prefix namespace is being removed.

@@ -4,16 +4,21 @@
  */
 "use strict";
 
+const astUtils = require("./utils/ast-utils");
+
 //------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
 
 module.exports = {
     meta: {
+        type: "layout",
+
         docs: {
             description: "enforce position of line comments",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/line-comment-position"
         },
 
         schema: [
@@ -33,34 +38,46 @@ module.exports = {
                             },
                             applyDefaultPatterns: {
                                 type: "boolean"
+                            },
+                            applyDefaultIgnorePatterns: {
+                                type: "boolean"
                             }
                         },
                         additionalProperties: false
                     }
                 ]
             }
-        ]
+        ],
+        messages: {
+            above: "Expected comment to be above code.",
+            beside: "Expected comment to be beside code."
+        }
     },
 
     create(context) {
-        const DEFAULT_IGNORE_PATTERN = "^\\s*(?:eslint|jshint\\s+|jslint\\s+|istanbul\\s+|globals?\\s+|exported\\s+|jscs|falls?\\s?through)";
         const options = context.options[0];
 
         let above,
             ignorePattern,
-            applyDefaultPatterns = true;
+            applyDefaultIgnorePatterns = true;
 
         if (!options || typeof options === "string") {
             above = !options || options === "above";
 
         } else {
-            above = options.position === "above";
+            above = !options.position || options.position === "above";
             ignorePattern = options.ignorePattern;
-            applyDefaultPatterns = options.applyDefaultPatterns !== false;
+
+            if (Object.prototype.hasOwnProperty.call(options, "applyDefaultIgnorePatterns")) {
+                applyDefaultIgnorePatterns = options.applyDefaultIgnorePatterns;
+            } else {
+                applyDefaultIgnorePatterns = options.applyDefaultPatterns !== false;
+            }
         }
 
-        const defaultIgnoreRegExp = new RegExp(DEFAULT_IGNORE_PATTERN);
-        const customIgnoreRegExp = new RegExp(ignorePattern);
+        const defaultIgnoreRegExp = astUtils.COMMENTS_IGNORE_PATTERN;
+        const fallThroughRegExp = /^\s*falls?\s?through/u;
+        const customIgnoreRegExp = new RegExp(ignorePattern, "u");
         const sourceCode = context.getSourceCode();
 
         //--------------------------------------------------------------------------
@@ -68,33 +85,37 @@ module.exports = {
         //--------------------------------------------------------------------------
 
         return {
-            LineComment(node) {
-                if (applyDefaultPatterns && defaultIgnoreRegExp.test(node.value)) {
-                    return;
-                }
+            Program() {
+                const comments = sourceCode.getAllComments();
 
-                if (ignorePattern && customIgnoreRegExp.test(node.value)) {
-                    return;
-                }
-
-                const previous = sourceCode.getTokenBefore(node, { includeComments: true });
-                const isOnSameLine = previous && previous.loc.end.line === node.loc.start.line;
-
-                if (above) {
-                    if (isOnSameLine) {
-                        context.report({
-                            node,
-                            message: "Expected comment to be above code."
-                        });
+                comments.filter(token => token.type === "Line").forEach(node => {
+                    if (applyDefaultIgnorePatterns && (defaultIgnoreRegExp.test(node.value) || fallThroughRegExp.test(node.value))) {
+                        return;
                     }
-                } else {
-                    if (!isOnSameLine) {
-                        context.report({
-                            node,
-                            message: "Expected comment to be beside code."
-                        });
+
+                    if (ignorePattern && customIgnoreRegExp.test(node.value)) {
+                        return;
                     }
-                }
+
+                    const previous = sourceCode.getTokenBefore(node, { includeComments: true });
+                    const isOnSameLine = previous && previous.loc.end.line === node.loc.start.line;
+
+                    if (above) {
+                        if (isOnSameLine) {
+                            context.report({
+                                node,
+                                messageId: "above"
+                            });
+                        }
+                    } else {
+                        if (!isOnSameLine) {
+                            context.report({
+                                node,
+                                messageId: "beside"
+                            });
+                        }
+                    }
+                });
             }
         };
     }

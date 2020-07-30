@@ -1,4 +1,4 @@
-# [postcss][postcss]-svgo [![Build Status](https://travis-ci.org/ben-eb/postcss-svgo.svg?branch=master)][ci] [![NPM version](https://badge.fury.io/js/postcss-svgo.svg)][npm] [![Dependency Status](https://gemnasium.com/ben-eb/postcss-svgo.svg)][deps]
+# [postcss][postcss]-svgo
 
 > Optimise inline SVG with PostCSS.
 
@@ -20,6 +20,10 @@ npm install postcss-svgo --save
 h1 {
     background: url('data:image/svg+xml;charset=utf-8,<?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve"><circle cx="50" cy="50" r="40" fill="yellow" /></svg>');
 }
+
+h2 {
+    background: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDAiIGZpbGw9InllbGxvdyIgLz48IS0tdGVzdCBjb21tZW50LS0+PC9zdmc+');
+}
 ```
 
 ### Output
@@ -27,6 +31,10 @@ h1 {
 ```css
 h1 {
     background: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="%23ff0"/></svg>');
+}
+
+h2 {
+    background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjQwIiBmaWxsPSIjZmYwIi8+PC9zdmc+');
 }
 ```
 
@@ -107,24 +115,12 @@ examples for your environment.
 
 ## Contributors
 
-Thanks goes to these wonderful people ([emoji key](https://github.com/kentcdodds/all-contributors#emoji-key)):
+See [CONTRIBUTORS.md](https://github.com/cssnano/cssnano/blob/master/CONTRIBUTORS.md).
 
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-| [<img src="https://avatars.githubusercontent.com/u/1282980?v=3" width="100px;"/><br /><sub>Ben Briggs</sub>](http://beneb.info)<br />[💻](https://github.com/ben-eb/postcss-svgo/commits?author=ben-eb) [📖](https://github.com/ben-eb/postcss-svgo/commits?author=ben-eb) 👀 [⚠️](https://github.com/ben-eb/postcss-svgo/commits?author=ben-eb) | [<img src="https://avatars.githubusercontent.com/u/7263665?v=3" width="100px;"/><br /><sub>Sebastian Misch</sub>](https://sebastian-misch.de)<br />[💻](https://github.com/ben-eb/postcss-svgo/commits?author=sbstnmsch) [⚠️](https://github.com/ben-eb/postcss-svgo/commits?author=sbstnmsch) | [<img src="https://avatars.githubusercontent.com/u/11319202?v=3" width="100px;"/><br /><sub>Вячеслав Ляшенко</sub>](https://github.com/ophyros)<br />[💻](https://github.com/ben-eb/postcss-svgo/commits?author=ophyros) [⚠️](https://github.com/ben-eb/postcss-svgo/commits?author=ophyros) | [<img src="https://avatars.githubusercontent.com/u/1131567?v=3" width="100px;"/><br /><sub>shinnn</sub>](https://shinnn.github.io)<br />[💻](https://github.com/ben-eb/postcss-svgo/commits?author=shinnn) | [<img src="https://avatars.githubusercontent.com/u/45338?v=3" width="100px;"/><br /><sub>Jung-gun Lim</sub>](https://github.com/j6lim)<br />[🐛](https://github.com/ben-eb/postcss-svgo/issues?q=author%3Aj6lim) | [<img src="https://avatars.githubusercontent.com/u/5635476?v=3" width="100px;"/><br /><sub>Bogdan Chadkin</sub>](https://github.com/TrySound)<br />[💻](https://github.com/ben-eb/postcss-svgo/commits?author=TrySound) 👀 [⚠️](https://github.com/ben-eb/postcss-svgo/commits?author=TrySound) | [<img src="https://avatars.githubusercontent.com/u/368561?v=3" width="100px;"/><br /><sub>Piotr Walczyszyn</sub>](http://outof.me)<br />[🐛](https://github.com/ben-eb/postcss-svgo/issues?q=author%3Apwalczyszyn) |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-This project follows the [all-contributors] specification. Contributions of
-any kind welcome!
 
 ## License
 
 MIT © [Ben Briggs](http://beneb.info)
 
-
-[all-contributors]: https://github.com/kentcdodds/all-contributors
-[ci]:      https://travis-ci.org/ben-eb/postcss-svgo
-[deps]:    https://gemnasium.com/ben-eb/postcss-svgo
-[npm]:     http://badge.fury.io/js/postcss-svgo
 [postcss]: https://github.com/postcss/postcss
 [plugins]: https://github.com/svg/svgo/tree/master/plugins

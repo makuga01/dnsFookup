@@ -1,9 +1,9 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
 
-exports.default = function (string) {
-  return string.replace(/["']/g, '');
-};
+exports.default = string => string.replace(/["']/g, '');
 
 module.exports = exports['default'];

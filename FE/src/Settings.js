@@ -26,8 +26,8 @@ class Settings extends Component {
   }
 
 
-  deletMe = () => {
-    event.preventDefault();
+  deletMe = (e) => {
+    e.preventDefault();
 
     let pw = document.getElementById("delete_pw").value;
     if (pw == ""){
@@ -51,7 +51,7 @@ class Settings extends Component {
     }
     var bearer = "Bearer " + localStorage.getItem("access_token");
 
-    fetch("http://rbnd.gl0.eu:5000/auth/delete_me", {
+    fetch(process.env.REACT_APP_API+"/auth/delete_me", {
       method: "POST",
       Accept: "aplication/json",
       headers: new Headers({
@@ -80,8 +80,8 @@ class Settings extends Component {
       });
   };
 
-  pwChange = () => {
-    event.preventDefault();
+  pwChange = (e) => {
+    e.preventDefault();
 
     let oldpw = document.getElementById("oldpw").value;
     let newpw = document.getElementById("newpw").value;
@@ -114,7 +114,7 @@ class Settings extends Component {
     }
     var bearer = "Bearer " + localStorage.getItem("access_token");
 
-    fetch("http://rbnd.gl0.eu:5000/auth/change_pw", {
+    fetch(process.env.REACT_APP_API+"/auth/change_pw", {
       method: "POST",
       Accept: "aplication/json",
       headers: new Headers({

@@ -1,9 +1,8 @@
 'use strict';
 
 var FS = require('fs');
+var PATH = require('path');
 var yaml = require('js-yaml');
-
-var EXTEND = require('whet.extend');
 
 /**
  * Read and/or extend/replace default config file,
@@ -25,11 +24,11 @@ module.exports = function(config) {
         defaults = config;
 
         if (Array.isArray(defaults.plugins)) {
-            defaults.plugins = preparePluginsArray(defaults.plugins);
+            defaults.plugins = preparePluginsArray(config, defaults.plugins);
         }
     } else {
-        defaults = EXTEND({}, yaml.safeLoad(FS.readFileSync(__dirname + '/../../.svgo.yml', 'utf8')));
-        defaults.plugins = preparePluginsArray(defaults.plugins);
+        defaults = Object.assign({}, yaml.safeLoad(FS.readFileSync(__dirname + '/../../.svgo.yml', 'utf8')));
+        defaults.plugins = preparePluginsArray(config, defaults.plugins || []);
         defaults = extendConfig(defaults, config);
     }
 
@@ -37,9 +36,13 @@ module.exports = function(config) {
         defaults.plugins.forEach(function(plugin) {
             if (plugin.params && ('floatPrecision' in plugin.params)) {
                 // Don't touch default plugin params
-                plugin.params = EXTEND({}, plugin.params, { floatPrecision: config.floatPrecision });
+                plugin.params = Object.assign({}, plugin.params, { floatPrecision: config.floatPrecision });
             }
         });
+    }
+
+    if ('datauri' in config) {
+        defaults.datauri = config.datauri;
     }
 
     if (Array.isArray(defaults.plugins)) {
@@ -53,10 +56,11 @@ module.exports = function(config) {
 /**
  * Require() all plugins in array.
  *
+ * @param {Object} config
  * @param {Array} plugins input plugins array
  * @return {Array} input plugins array of arrays
  */
-function preparePluginsArray(plugins) {
+function preparePluginsArray(config, plugins) {
 
     var plugin,
         key;
@@ -74,30 +78,22 @@ function preparePluginsArray(plugins) {
 
             } else {
 
-              plugin = EXTEND({}, require('../../plugins/' + key));
-
-              // name: {}
-              if (typeof item[key] === 'object') {
-                  plugin.params = EXTEND({}, plugin.params || {}, item[key]);
-                  plugin.active = true;
-
-              // name: false
-              } else if (item[key] === false) {
-                 plugin.active = false;
-
-              // name: true
-              } else if (item[key] === true) {
-                 plugin.active = true;
-              }
-
-              plugin.name = key;
+                plugin = setPluginActiveState(
+                    loadPlugin(config, key, item[key].path),
+                    item,
+                    key
+                );
+                plugin.name = key;
             }
 
         // name
         } else {
 
-            plugin = EXTEND({}, require('../../plugins/' + item));
+            plugin = loadPlugin(config, item);
             plugin.name = item;
+            if (typeof plugin.params === 'object') {
+                plugin.params = Object.assign({}, plugin.params);
+            }
 
         }
 
@@ -128,27 +124,23 @@ function extendConfig(defaults, config) {
 
                 key = Object.keys(item)[0];
 
+                if (item[key] == null) {
+                    console.error(`Error: '${key}' plugin is misconfigured! Have you padded its content in YML properly?\n`);
+                }
+
                 // custom
                 if (typeof item[key] === 'object' && item[key].fn && typeof item[key].fn === 'function') {
                     defaults.plugins.push(setupCustomPlugin(key, item[key]));
+
+                // plugin defined via path
+                } else if (typeof item[key] === 'object' && item[key].path) {
+                    defaults.plugins.push(setPluginActiveState(loadPlugin(config, undefined, item[key].path), item, key));
 
                 } else {
                     defaults.plugins.forEach(function(plugin) {
 
                         if (plugin.name === key) {
-                            // name: {}
-                            if (typeof item[key] === 'object') {
-                                plugin.params = EXTEND({}, plugin.params || {}, item[key]);
-                                plugin.active = true;
-
-                            // name: false
-                            } else if (item[key] === false) {
-                               plugin.active = false;
-
-                            // name: true
-                            } else if (item[key] === true) {
-                               plugin.active = true;
-                            }
+                            plugin = setPluginActiveState(plugin, item, key);
                         }
                     });
                 }
@@ -184,7 +176,7 @@ function extendConfig(defaults, config) {
  */
 function setupCustomPlugin(name, plugin) {
     plugin.active = true;
-    plugin.params = EXTEND({}, plugin.params || {});
+    plugin.params = Object.assign({}, plugin.params || {});
     plugin.name = name;
 
     return plugin;
@@ -209,4 +201,50 @@ function optimizePluginsArray(plugins) {
         return plugins;
     }, []);
 
+}
+
+/**
+ * Sets plugin to active or inactive state.
+ *
+ * @param {Object} plugin
+ * @param {Object} item
+ * @param {Object} key
+ * @return {Object} plugin
+ */
+function setPluginActiveState(plugin, item, key) {
+    // name: {}
+    if (typeof item[key] === 'object') {
+        plugin.params = Object.assign({}, plugin.params || {}, item[key]);
+        plugin.active = true;
+
+    // name: false
+    } else if (item[key] === false) {
+        plugin.active = false;
+
+    // name: true
+    } else if (item[key] === true) {
+        plugin.active = true;
+    }
+
+    return plugin;
+}
+
+/**
+ * Loads default plugin using name or custom plugin defined via path in config.
+ *
+ * @param {Object} config
+ * @param {Object} name
+ * @param {Object} path
+ * @return {Object} plugin
+ */
+function loadPlugin(config, name, path) {
+    var plugin;
+
+    if (!path) {
+        plugin = require('../../plugins/' + name);
+    } else {
+        plugin = require(PATH.resolve(config.__DIR, path));
+    }
+
+    return Object.assign({}, plugin);
 }

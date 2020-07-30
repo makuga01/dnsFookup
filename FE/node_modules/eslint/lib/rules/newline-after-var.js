@@ -1,6 +1,7 @@
 /**
  * @fileoverview Rule to check empty newline after "var" statement
  * @author Gopal Venkatesan
+ * @deprecated
  */
 
 "use strict";
@@ -9,7 +10,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-const astUtils = require("../ast-utils");
+const astUtils = require("./utils/ast-utils");
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -17,26 +18,31 @@ const astUtils = require("../ast-utils");
 
 module.exports = {
     meta: {
+        type: "layout",
+
         docs: {
             description: "require or disallow an empty line after variable declarations",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/newline-after-var"
         },
-
         schema: [
             {
                 enum: ["never", "always"]
             }
         ],
+        fixable: "whitespace",
+        messages: {
+            expected: "Expected blank line after variable declarations.",
+            unexpected: "Unexpected blank line after variable declarations."
+        },
 
-        fixable: "whitespace"
+        deprecated: true,
+
+        replacedBy: ["padding-line-between-statements"]
     },
 
     create(context) {
-
-        const ALWAYS_MESSAGE = "Expected blank line after variable declarations.",
-            NEVER_MESSAGE = "Unexpected blank line after variable declarations.";
-
         const sourceCode = context.getSourceCode();
 
         // Default `mode` to "always".
@@ -66,8 +72,7 @@ module.exports = {
          *     var foo = 1
          *
          *     ;(a || b).doSomething()
-         *
-         * @param {ASTNode} node - The node to get.
+         * @param {ASTNode} node The node to get.
          * @returns {Token} The token to compare line to the next statement.
          */
         function getLastToken(node) {
@@ -87,7 +92,7 @@ module.exports = {
         /**
          * Determine if provided keyword is a variable declaration
          * @private
-         * @param {string} keyword - keyword to test
+         * @param {string} keyword keyword to test
          * @returns {boolean} True if `keyword` is a type of var
          */
         function isVar(keyword) {
@@ -97,7 +102,7 @@ module.exports = {
         /**
          * Determine if provided keyword is a variant of for specifiers
          * @private
-         * @param {string} keyword - keyword to test
+         * @param {string} keyword keyword to test
          * @returns {boolean} True if `keyword` is a variant of for specifier
          */
         function isForTypeSpecifier(keyword) {
@@ -107,7 +112,7 @@ module.exports = {
         /**
          * Determine if provided keyword is an export specifiers
          * @private
-         * @param {string} nodeType - nodeType to test
+         * @param {string} nodeType nodeType to test
          * @returns {boolean} True if `nodeType` is an export specifier
          */
         function isExportSpecifier(nodeType) {
@@ -118,7 +123,7 @@ module.exports = {
         /**
          * Determine if provided node is the last of their parent block.
          * @private
-         * @param {ASTNode} node - node to test
+         * @param {ASTNode} node node to test
          * @returns {boolean} True if `node` is last of their parent block.
          */
         function isLastNode(node) {
@@ -128,10 +133,10 @@ module.exports = {
         }
 
         /**
-        * Gets the last line of a group of consecutive comments
-        * @param {number} commentStartLine The starting line of the group
-        * @returns {number} The number of the last comment line of the group
-        */
+         * Gets the last line of a group of consecutive comments
+         * @param {number} commentStartLine The starting line of the group
+         * @returns {number} The number of the last comment line of the group
+         */
         function getLastCommentLineOfBlock(commentStartLine) {
             const currentCommentEnd = commentEndLine[commentStartLine];
 
@@ -153,7 +158,7 @@ module.exports = {
          * set to "always", or checks that there is no blank line when mode is set
          * to "never"
          * @private
-         * @param {ASTNode} node - `VariableDeclaration` node to test
+         * @param {ASTNode} node `VariableDeclaration` node to test
          * @returns {void}
          */
         function checkForBlankLine(node) {
@@ -186,8 +191,10 @@ module.exports = {
                 return;
             }
 
-            // Some coding styles use multiple `var` statements, so do nothing if
-            // the next token is a `var` statement.
+            /*
+             * Some coding styles use multiple `var` statements, so do nothing if
+             * the next token is a `var` statement.
+             */
             if (nextToken.type === "Keyword" && isVar(nextToken.value)) {
                 return;
             }
@@ -204,7 +211,7 @@ module.exports = {
             if (mode === "never" && noNextLineToken && !hasNextLineComment) {
                 context.report({
                     node,
-                    message: NEVER_MESSAGE,
+                    messageId: "unexpected",
                     data: { identifier: node.name },
                     fix(fixer) {
                         const linesBetween = sourceCode.getText().slice(lastToken.range[1], nextToken.range[0]).split(astUtils.LINEBREAK_MATCHER);
@@ -223,7 +230,7 @@ module.exports = {
             ) {
                 context.report({
                     node,
-                    message: ALWAYS_MESSAGE,
+                    messageId: "expected",
                     data: { identifier: node.name },
                     fix(fixer) {
                         if ((noNextLineToken ? getLastCommentLineOfBlock(nextLineNum) : lastToken.loc.end.line) === nextToken.loc.start.line) {

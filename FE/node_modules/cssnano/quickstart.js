@@ -16,22 +16,32 @@ h1 {
 `;
 
 /*
- * Add your configuration here; see http://cssnano.co/options/ and
- * http://cssnano.co/optimisations/ for more details.
+ * Add any PostCSS options here. For example to enable sourcemaps, see:
+ * https://github.com/postcss/postcss/blob/master/site/source-maps.md
  *
- * For example you can turn off z-index rebasing by setting `zindex: false`
- * in your config, or you can use `safe: true` which will turn off unsafe
- * optimisations.
+ * Or for an inline sourcemap, uncomment the options below.
  */
 
-const opts = {
+const postcssOpts = {
+    // from: 'app.css',
+    // to:   'app.min.css',
+    // map:  {inline: true},
+};
 
+/*
+ * Add your choice of preset. Note that for any value other
+ * than 'default', you will need to install the appropriate
+ * preset separately.
+ */
+
+const cssnanoOpts = {
+    preset: 'default',
 };
 
 /*
  * Compress the CSS asynchronously and log it to the console.
  */
 
-cssnano.process(css, opts).then(result => {
+cssnano.process(css, postcssOpts, cssnanoOpts).then(result => {
     console.log(result.css);
 });

@@ -19,7 +19,7 @@ function nextPow2(size) {
 
 // Expandable buffer that we can provide a size hint for
 function Accumulator(initsize) {
-  this.buf = new Buffer(nextPow2(initsize || 8192));
+  this.buf = Buffer.alloc(nextPow2(initsize || 8192));
   this.readOffset = 0;
   this.writeOffset = 0;
 }
@@ -55,7 +55,7 @@ Accumulator.prototype.reserve = function(size) {
   }
 
   // Allocate a replacement and copy it in
-  var buf = new Buffer(nextPow2(this.buf.length + size - this.writeAvail()));
+  var buf = Buffer.alloc(nextPow2(this.buf.length + size - this.writeAvail()));
   this.buf.copy(buf);
   this.buf = buf;
 }
@@ -120,6 +120,9 @@ Accumulator.prototype.peekInt = function(size) {
 
 Accumulator.prototype.readInt = function(bytes) {
   var ival = this.peekInt(bytes);
+  if (ival instanceof Int64 && isFinite(ival.valueOf())) {
+    ival = ival.valueOf();
+  }
   this.readOffset += bytes;
   return ival;
 }
@@ -207,8 +210,8 @@ var ST_NEED_PDU = 0; // Need to read and decode PDU length
 var ST_FILL_PDU = 1; // Know the length, need to read whole content
 
 var MAX_INT8 = 127;
-var MAX_INT16 = 32768;
-var MAX_INT32 = 2147483648;
+var MAX_INT16 = 32767;
+var MAX_INT32 = 2147483647;
 
 function BunserBuf() {
   EE.call(this);
@@ -397,7 +400,7 @@ BunserBuf.prototype.decodeString = function() {
 // the PDU length from the PDU header; we'll set relaxSizeAsserts
 // in that case.
 BunserBuf.prototype.decodeInt = function(relaxSizeAsserts) {
-  if (relaxSizeAsserts && !this.buf.readAvail(1)) {
+  if (relaxSizeAsserts && (this.buf.readAvail() < 1)) {
     return false;
   } else {
     this.buf.assertReadableSize(1);
@@ -421,7 +424,7 @@ BunserBuf.prototype.decodeInt = function(relaxSizeAsserts) {
       this.raise("invalid bser int encoding " + code);
   }
 
-  if (relaxSizeAsserts && !this.buf.readAvail(1 + size)) {
+  if (relaxSizeAsserts && (this.buf.readAvail() < 1 + size)) {
     return false;
   }
   this.buf.readAdvance(1);
@@ -447,7 +450,7 @@ exports.loadFromBuffer = loadFromBuffer
 // Byteswap an arbitrary buffer, flipping from one endian
 // to the other, returning a new buffer with the resultant data
 function byteswap64(buf) {
-  var swap = new Buffer(buf.length);
+  var swap = Buffer.alloc(buf.length);
   for (var i = 0; i < buf.length; i++) {
     swap[i] = buf[buf.length -1 - i];
   }
@@ -490,8 +493,13 @@ function dump_int(buf, val) {
 function dump_any(buf, val) {
   switch (typeof(val)) {
     case 'number':
-      buf.writeByte(BSER_REAL);
-      buf.writeDouble(val);
+      // check if it is an integer or a float
+      if (isFinite(val) && Math.floor(val) === val) {
+        dump_int(buf, val);
+      } else {
+        buf.writeByte(BSER_REAL);
+        buf.writeDouble(val);
+      }
       return;
     case 'string':
       buf.writeByte(BSER_STRING);

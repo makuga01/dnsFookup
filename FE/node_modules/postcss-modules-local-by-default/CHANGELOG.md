@@ -2,9 +2,52 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased][unreleased]
+## [3.0.3] - 2020-07-25
+### Fixed
+- treat `:import` and `:export` statements as pure
+
+## [3.0.2] - 2019-06-05
+### Fixed
+- better handle invalid syntax
+
+## [3.0.1] - 2019-05-16
+### Fixed
+- adds safety check before accessing "rule parent"
+
+## [3.0.0] - 2019-05-07
+### Features
+- don't localize imported values in selectors 
+### Changes
+- don't localize imported values in selectors 
+
+## [2.0.6] - 2019-03-05
+### Fixed
+- handles properly selector with escaping characters (like: `.\31 a2b3c { color: red }`)
+
+## [2.0.5] - 2019-02-06
+### Fixed
+- Path to `index.js`
+
+## [2.0.4] - 2019-01-04
+### Fixed
+- Inappropriate modification of `steps` function arguments
+
+## [2.0.3] - 2018-12-21
+### Fixed
+- Don't modify inappropriate animation keywords
+
+## [2.0.2] - 2018-12-05
+### Fixed
+- Don't break unicode characters.
+
+## [2.0.1] - 2018-11-23
+### Fixed
+- Handle uppercase `keyframes` at rule.
+
+## [2.0.0] - 2018-11-23
 ### Changed
-- Nothing yet.
+- Drop support `nodejs@4`.
+- Update `postcss` version to `7`.
 
 ## [0.0.11] - 2015-07-19
 ### Fixed
@@ -71,3 +114,5 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [0.0.9]:      https://github.com/postcss-modules-local-by-default/compare/v0.0.8...v0.0.9
 [0.0.10]:      https://github.com/postcss-modules-local-by-default/compare/v0.0.9...v0.0.10
 [0.0.11]:      https://github.com/postcss-modules-local-by-default/compare/v0.0.10...v0.0.11
+[2.0.0]:      https://github.com/postcss-modules-local-by-default/compare/v1.3.1...v2.0.0
+[2.0.1]:      https://github.com/postcss-modules-local-by-default/compare/v2.0.0...v2.0.1

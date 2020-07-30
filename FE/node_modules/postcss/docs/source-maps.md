@@ -13,17 +13,17 @@ If you don’t want the map inlined, you can set `map.inline: false`.
 
 ```js
 processor
-    .process(css, {
-        from: 'app.sass.css',
-        to:   'app.css',
-        map: { inline: false },
-    })
-    .then(function (result) {
-        result.map //=> '{ "version":3,
-                   //      "file":"app.css",
-                   //      "sources":["app.sass"],
-                   //       "mappings":"AAAA,KAAI" }'
-    });
+  .process(css, {
+    from: 'app.sass.css',
+    to:   'app.css',
+    map: { inline: false }
+  })
+  .then(result => {
+      result.map //=> '{ "version":3,
+                 //      "file":"app.css",
+                 //      "sources":["app.sass"],
+                 //       "mappings":"AAAA,KAAI" }'
+  })
 ```
 
 If PostCSS finds source maps from a previous transformation,
@@ -68,5 +68,7 @@ option as an object with the following parameters:
 * `from` string: by default, PostCSS will set the `sources` property of the map
   to the value of the `from` option. If you want to override this behaviour, you
   can use `map.from` to explicitly set the source map's `sources` property.
+  Path should be absolute or relative from generated file
+  (`to` option in `process()` method).
 
 [source maps]: http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/

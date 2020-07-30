@@ -1,6 +1,8 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
 var _postcss = require('postcss');
 
@@ -16,20 +18,20 @@ var _convert2 = _interopRequireDefault(_convert);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var LENGTH_UNITS = ['em', 'ex', 'ch', 'rem', 'vw', 'vh', 'vmin', 'vmax', 'cm', 'mm', 'q', 'in', 'pt', 'pc', 'px'];
+const LENGTH_UNITS = ['em', 'ex', 'ch', 'rem', 'vw', 'vh', 'vmin', 'vmax', 'cm', 'mm', 'q', 'in', 'pt', 'pc', 'px'];
 
 function parseWord(node, opts, keepZeroUnit) {
-    var pair = (0, _postcssValueParser.unit)(node.value);
+    const pair = (0, _postcssValueParser.unit)(node.value);
     if (pair) {
-        var num = Number(pair.number);
-        var u = pair.unit.toLowerCase();
+        const num = Number(pair.number);
+        const u = pair.unit;
         if (num === 0) {
-            node.value = keepZeroUnit || !~LENGTH_UNITS.indexOf(u) && u !== '%' ? 0 + u : 0;
+            node.value = keepZeroUnit || !~LENGTH_UNITS.indexOf(u.toLowerCase()) && u !== '%' ? 0 + u : 0;
         } else {
             node.value = (0, _convert2.default)(num, u, opts);
 
-            if (typeof opts.precision === 'number' && u === 'px' && ~pair.number.indexOf('.')) {
-                var precision = Math.pow(10, opts.precision);
+            if (typeof opts.precision === 'number' && u.toLowerCase() === 'px' && ~pair.number.indexOf('.')) {
+                const precision = Math.pow(10, opts.precision);
                 node.value = Math.round(parseFloat(node.value) * precision) / precision + u;
             }
         }
@@ -37,11 +39,11 @@ function parseWord(node, opts, keepZeroUnit) {
 }
 
 function clampOpacity(node) {
-    var pair = (0, _postcssValueParser.unit)(node.value);
+    const pair = (0, _postcssValueParser.unit)(node.value);
     if (!pair) {
         return;
     }
-    var num = Number(pair.number);
+    let num = Number(pair.number);
     if (num > 1) {
         node.value = 1 + pair.unit;
     } else if (num < 0) {
@@ -49,60 +51,45 @@ function clampOpacity(node) {
     }
 }
 
-function shouldStripPercent(_ref) {
-    var value = _ref.value,
-        prop = _ref.prop,
-        parent = _ref.parent;
-
-    return ~value.indexOf('%') && (prop === 'max-height' || prop === 'height') || parent.parent && parent.parent.name === 'keyframes' && prop === 'stroke-dasharray' || prop === 'stroke-dashoffset' || prop === 'stroke-width';
+function shouldStripPercent(decl) {
+    const { parent } = decl;
+    const lowerCasedProp = decl.prop.toLowerCase();
+    return ~decl.value.indexOf('%') && (lowerCasedProp === 'max-height' || lowerCasedProp === 'height') || parent.parent && parent.parent.name && parent.parent.name.toLowerCase() === 'keyframes' && lowerCasedProp === 'stroke-dasharray' || lowerCasedProp === 'stroke-dashoffset' || lowerCasedProp === 'stroke-width';
 }
 
-function transform(opts) {
-    return function (decl) {
-        var prop = decl.prop;
+function transform(opts, decl) {
+    const lowerCasedProp = decl.prop.toLowerCase();
+    if (~lowerCasedProp.indexOf('flex') || lowerCasedProp.indexOf('--') === 0) {
+        return;
+    }
 
-        if (~prop.indexOf('flex') || prop.indexOf('--') === 0) {
-            return;
-        }
+    decl.value = (0, _postcssValueParser2.default)(decl.value).walk(node => {
+        const lowerCasedValue = node.value.toLowerCase();
 
-        decl.value = (0, _postcssValueParser2.default)(decl.value).walk(function (node) {
-            if (node.type === 'word') {
-                parseWord(node, opts, shouldStripPercent(decl));
-                if (prop === 'opacity' || prop === 'shape-image-threshold') {
-                    clampOpacity(node);
-                }
-            } else if (node.type === 'function') {
-                if (node.value === 'calc' || node.value === 'hsl' || node.value === 'hsla') {
-                    (0, _postcssValueParser.walk)(node.nodes, function (n) {
-                        if (n.type === 'word') {
-                            parseWord(n, opts, true);
-                        }
-                    });
-                    return false;
-                }
-                if (node.value === 'url') {
-                    return false;
-                }
+        if (node.type === 'word') {
+            parseWord(node, opts, shouldStripPercent(decl));
+            if (lowerCasedProp === 'opacity' || lowerCasedProp === 'shape-image-threshold') {
+                clampOpacity(node);
             }
-        }).toString();
-    };
+        } else if (node.type === 'function') {
+            if (lowerCasedValue === 'calc' || lowerCasedValue === 'hsl' || lowerCasedValue === 'hsla') {
+                (0, _postcssValueParser.walk)(node.nodes, n => {
+                    if (n.type === 'word') {
+                        parseWord(n, opts, true);
+                    }
+                });
+                return false;
+            }
+            if (lowerCasedValue === 'url') {
+                return false;
+            }
+        }
+    }).toString();
 }
 
-var plugin = 'postcss-convert-values';
+const plugin = 'postcss-convert-values';
 
-exports.default = _postcss2.default.plugin(plugin, function () {
-    var opts = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : { precision: false };
-
-    if (opts.length === undefined && opts.convertLength !== undefined) {
-        console.warn(plugin + ': `convertLength` option is deprecated. Use `length`');
-        opts.length = opts.convertLength;
-    }
-    if (opts.length === undefined && opts.convertTime !== undefined) {
-        console.warn(plugin + ': `convertTime` option is deprecated. Use `time`');
-        opts.time = opts.convertTime;
-    }
-    return function (css) {
-        return css.walkDecls(transform(opts));
-    };
+exports.default = _postcss2.default.plugin(plugin, (opts = { precision: false }) => {
+    return css => css.walkDecls(transform.bind(null, opts));
 });
 module.exports = exports['default'];

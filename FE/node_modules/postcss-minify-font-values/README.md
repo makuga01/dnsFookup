@@ -38,10 +38,10 @@ p {
 ##### removeAfterKeyword
 
 Type: `boolean`
-Default: `true`
+Default: `false`
 
-Pass `false` to disable the module from removing font families after it
-encounters a font keyword, for example `sans-serif`.
+Pass `true` to remove font families after the module encounters a font keyword,
+for example `sans-serif`.
 
 ##### removeDuplicates
 
@@ -67,9 +67,15 @@ postcss([ require('postcss-minify-font-values') ])
 
 See [PostCSS] docs for examples for your environment.
 
+## Contributors
+
+See [CONTRIBUTORS.md](https://github.com/cssnano/cssnano/blob/master/CONTRIBUTORS.md).
+
+# License
+
 MIT © [Bogdan Chadkin](mailto:trysound@yandex.ru)
 
 [mathias]: https://mathiasbynens.be/notes/unquoted-font-family
 [PostCSS]: https://github.com/postcss/postcss
-[ci-img]:  https://travis-ci.org/TrySound/postcss-minify-font-values.svg
-[ci]:      https://travis-ci.org/TrySound/postcss-minify-font-values
+[ci-img]:  https://travis-ci.org/cssnano/postcss-minify-font-values.svg
+[ci]:      https://travis-ci.org/cssnano/postcss-minify-font-values

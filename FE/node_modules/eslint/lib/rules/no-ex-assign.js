@@ -5,7 +5,7 @@
 
 "use strict";
 
-const astUtils = require("../ast-utils");
+const astUtils = require("./utils/ast-utils");
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -13,25 +13,32 @@ const astUtils = require("../ast-utils");
 
 module.exports = {
     meta: {
+        type: "problem",
+
         docs: {
             description: "disallow reassigning exceptions in `catch` clauses",
             category: "Possible Errors",
-            recommended: true
+            recommended: true,
+            url: "https://eslint.org/docs/rules/no-ex-assign"
         },
 
-        schema: []
+        schema: [],
+
+        messages: {
+            unexpected: "Do not assign to the exception parameter."
+        }
     },
 
     create(context) {
 
         /**
          * Finds and reports references that are non initializer and writable.
-         * @param {Variable} variable - A variable to check.
+         * @param {Variable} variable A variable to check.
          * @returns {void}
          */
         function checkVariable(variable) {
             astUtils.getModifyingReferences(variable.references).forEach(reference => {
-                context.report({ node: reference.identifier, message: "Do not assign to the exception parameter." });
+                context.report({ node: reference.identifier, messageId: "unexpected" });
             });
         }
 

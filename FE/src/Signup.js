@@ -40,7 +40,7 @@ class Signup extends Component {
     data.append("username", email);
     data.append("password", password);
 
-    fetch("http://rbnd.gl0.eu:5000/auth/signup", {
+    fetch(process.env.REACT_APP_API+"/auth/signup", {
       method: "POST",
       headers: new Headers({
         // 'Content-Type': 'form-data',

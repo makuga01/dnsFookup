@@ -13,24 +13,27 @@ npm install postcss-selector-parser
 ## Quick Start
 
 ```js
-var parser = require('postcss-selector-parser');
-var transform = function (selectors) {
-    selectors.eachInside(function (selector) {
+const parser = require('postcss-selector-parser');
+const transform = selectors => {
+    selectors.walk(selector => {
         // do something with the selector
         console.log(String(selector))
     });
 };
 
-var transformed = parser(transform).process('h1, h2, h3').result;
+const transformed = parser(transform).processSync('h1, h2, h3');
 ```
 
 To normalize selector whitespace:
 
 ```js
-var parser = require('postcss-selector-parser');
-var normalized = parser().process('h1, h2, h3', {lossless:false}).result;
+const parser = require('postcss-selector-parser');
+const normalized = parser().processSync('h1, h2, h3', {lossless: false});
 // -> h1,h2,h3
 ```
+
+Async support is provided through `parser.process` and will resolve a Promise
+with the resulting selector string.
 
 ## API
 

@@ -1,4 +1,4 @@
-# [postcss][postcss]-reduce-transforms [![Build Status](https://travis-ci.org/ben-eb/postcss-reduce-transforms.svg?branch=master)][ci] [![NPM version](https://badge.fury.io/js/postcss-reduce-transforms.svg)][npm] [![Dependency Status](https://gemnasium.com/ben-eb/postcss-reduce-transforms.svg)][deps]
+# [postcss][postcss]-reduce-transforms
 
 > Reduce transform functions with PostCSS.
 
@@ -36,16 +36,12 @@ h1 {
 See the [PostCSS documentation](https://github.com/postcss/postcss#usage) for
 examples for your environment.
 
-## Contributing
+## Contributors
 
-Pull requests are welcome. If you add functionality, then please add unit tests
-to cover it.
+See [CONTRIBUTORS.md](https://github.com/cssnano/cssnano/blob/master/CONTRIBUTORS.md).
 
 ## License
 
 MIT © [Ben Briggs](http://beneb.info)
 
-[ci]:      https://travis-ci.org/ben-eb/postcss-reduce-transforms
-[deps]:    https://gemnasium.com/ben-eb/postcss-reduce-transforms
-[npm]:     http://badge.fury.io/js/postcss-reduce-transforms
 [postcss]: https://github.com/postcss/postcss

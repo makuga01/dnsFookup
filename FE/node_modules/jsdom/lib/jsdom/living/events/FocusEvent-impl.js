@@ -1,4 +1,9 @@
 "use strict";
-const EventImpl = require("./Event-impl").implementation;
+const UIEventImpl = require("./UIEvent-impl").implementation;
 
-exports.implementation = class FocusEventImpl extends EventImpl { };
+const FocusEventInit = require("../generated/FocusEventInit");
+
+class FocusEventImpl extends UIEventImpl {}
+FocusEventImpl.defaultInit = FocusEventInit.convert(undefined);
+
+exports.implementation = FocusEventImpl;

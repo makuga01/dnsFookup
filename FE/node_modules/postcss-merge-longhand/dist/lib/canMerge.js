@@ -1,30 +1,40 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', {
+Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var important = function important(node) {
-    return node.important;
-};
-var unimportant = function unimportant(node) {
-    return !node.important;
-};
-var hasInherit = function hasInherit(node) {
-    return ~node.value.indexOf('inherit');
-};
-var hasInitial = function hasInitial(node) {
-    return ~node.value.indexOf('initial');
-};
 
-exports['default'] = function () {
-    for (var _len = arguments.length, props = Array(_len), _key = 0; _key < _len; _key++) {
-        props[_key] = arguments[_key];
-    }
+var _isCustomProp = require('./isCustomProp');
 
-    if (props.some(hasInherit) || props.some(hasInitial)) {
+var _isCustomProp2 = _interopRequireDefault(_isCustomProp);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+const important = node => node.important;
+const unimportant = node => !node.important;
+
+const hasInherit = node => node.value.toLowerCase() === 'inherit';
+const hasInitial = node => node.value.toLowerCase() === 'initial';
+const hasUnset = node => node.value.toLowerCase() === 'unset';
+
+exports.default = (props, includeCustomProps = true) => {
+    if (props.some(hasInherit) && !props.every(hasInherit)) {
         return false;
     }
-    return props.every(important) || props.every(unimportant);
+
+    if (props.some(hasInitial) && !props.every(hasInitial)) {
+        return false;
+    }
+
+    if (props.some(hasUnset) && !props.every(hasUnset)) {
+        return false;
+    }
+
+    if (includeCustomProps && props.some(_isCustomProp2.default) && !props.every(_isCustomProp2.default)) {
+        return false;
+    }
+
+    return props.every(unimportant) || props.every(important);
 };
 
 module.exports = exports['default'];

@@ -22,7 +22,9 @@ exports.params = {
     collapseRepeated: true,
     utilizeAbsolute: true,
     leadingZero: true,
-    negativeExtraSpace: true
+    negativeExtraSpace: true,
+    noSpaceAfterFlags: true,
+    forceAbsolutePath: false
 };
 
 var pathElems = require('./_collections.js').pathElems,
@@ -35,7 +37,8 @@ var pathElems = require('./_collections.js').pathElems,
     error,
     arcThreshold,
     arcTolerance,
-    hasMarkerMid;
+    hasMarkerMid,
+    hasStrokeLinecap;
 
 /**
  * Convert absolute Path to relative,
@@ -65,6 +68,10 @@ exports.fn = function(item, params) {
             arcTolerance = params.makeArcs.tolerance;
         }
         hasMarkerMid = item.hasAttr('marker-mid');
+
+        var stroke = item.computedAttr('stroke'),
+            strokeLinecap = item.computedAttr('stroke');
+        hasStrokeLinecap = stroke && stroke != 'none' && strokeLinecap && strokeLinecap != 'butt';
 
         var data = path2js(item);
 
@@ -328,12 +335,13 @@ function filters(path, params) {
                     arc.data[5] = arc.coords[0] - arc.base[0];
                     arc.data[6] = arc.coords[1] - arc.base[1];
                     var prevData = prev.instruction == 'a' ? prev.sdata : prev.data;
-                    angle += findArcAngle(prevData,
+                    var prevAngle = findArcAngle(prevData,
                         {
-                            center: [prevData[4] + relCenter[0], prevData[5] + relCenter[1]],
+                            center: [prevData[4] + circle.center[0], prevData[5] + circle.center[1]],
                             radius: circle.radius
                         }
                     );
+                    angle += prevAngle;
                     if (angle > Math.PI) arc.data[3] = 1;
                     hasPrev = 1;
                 }
@@ -583,7 +591,7 @@ function filters(path, params) {
             }
 
             // remove useless non-first path segments
-            if (params.removeUseless) {
+            if (params.removeUseless && !hasStrokeLinecap) {
 
                 // l 0,0 / h 0 / v 0 / q 0,0 0,0 / t 0,0 / c 0,0 0,0 0,0 / s 0,0 0,0
                 if (
@@ -671,11 +679,12 @@ function convertToMixed(path, params) {
         var absoluteDataStr = cleanupOutData(adata, params),
             relativeDataStr = cleanupOutData(data, params);
 
-        // Convert to absolute coordinates if it's shorter.
+        // Convert to absolute coordinates if it's shorter or forceAbsolutePath is true.
         // v-20 -> V0
         // Don't convert if it fits following previous instruction.
         // l20 30-10-50 instead of l20 30L20 30
         if (
+            params.forceAbsolutePath || (
             absoluteDataStr.length < relativeDataStr.length &&
             !(
                 params.negativeExtraSpace &&
@@ -683,7 +692,7 @@ function convertToMixed(path, params) {
                 prev.instruction.charCodeAt(0) > 96 &&
                 absoluteDataStr.length == relativeDataStr.length - 1 &&
                 (data[0] < 0 || /^0\./.test(data[0]) && prev.data[prev.data.length - 1] % 1)
-            )
+            ))
         ) {
             item.instruction = instruction.toUpperCase();
             item.data = adata;
@@ -840,7 +849,7 @@ function makeLonghand(item, data) {
  */
 
 function getDistance(point1, point2) {
-    return Math.sqrt(Math.pow(point1[0] - point2[0], 2) + Math.pow(point1[1] - point2[1], 2));
+    return Math.hypot(point1[0] - point2[0], point1[1] - point2[1]);
 }
 
 /**
@@ -885,21 +894,22 @@ function findCircle(curve) {
         radius = center && getDistance([0, 0], center),
         tolerance = Math.min(arcThreshold * error, arcTolerance * radius / 100);
 
-    if (center && [1/4, 3/4].every(function(point) {
+    if (center && radius < 1e15 &&
+        [1/4, 3/4].every(function(point) {
         return Math.abs(getDistance(getCubicBezierPoint(curve, point), center) - radius) <= tolerance;
     }))
         return { center: center, radius: radius};
 }
 
 /**
- * Checks if a curve fits the given circe.
+ * Checks if a curve fits the given circle.
  *
  * @param {Object} circle
  * @param {Array} curve
  * @return {Boolean}
  */
 
-function isArc(curve,  circle) {
+function isArc(curve, circle) {
     var tolerance = Math.min(arcThreshold * error, arcTolerance * circle.radius / 100);
 
     return [0, 1/4, 1/2, 3/4, 1].every(function(point) {
@@ -908,14 +918,14 @@ function isArc(curve,  circle) {
 }
 
 /**
- * Checks if a previos curve fits the given circe.
+ * Checks if a previous curve fits the given circle.
  *
  * @param {Object} circle
  * @param {Array} curve
  * @return {Boolean}
  */
 
-function isArcPrev(curve,  circle) {
+function isArcPrev(curve, circle) {
     return isArc(curve, {
         center: [circle.center[0] + curve[4], circle.center[1] + curve[5]],
         radius: circle.radius
@@ -952,6 +962,10 @@ function findArcAngle(curve, relCircle) {
 
 function data2Path(params, pathData) {
     return pathData.reduce(function(pathString, item) {
-        return pathString += item.instruction + (item.data ? cleanupOutData(roundData(item.data.slice()), params) : '');
+        var strData = '';
+        if (item.data) {
+            strData = cleanupOutData(roundData(item.data.slice()), params);
+        }
+        return pathString + item.instruction + strData;
     }, '');
 }

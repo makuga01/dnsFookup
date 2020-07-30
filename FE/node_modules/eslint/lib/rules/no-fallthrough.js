@@ -14,25 +14,25 @@ const lodash = require("lodash");
 // Helpers
 //------------------------------------------------------------------------------
 
-const DEFAULT_FALLTHROUGH_COMMENT = /falls?\s?through/i;
+const DEFAULT_FALLTHROUGH_COMMENT = /falls?\s?through/iu;
 
 /**
  * Checks whether or not a given node has a fallthrough comment.
- * @param {ASTNode} node - A SwitchCase node to get comments.
- * @param {RuleContext} context - A rule context which stores comments.
- * @param {RegExp} fallthroughCommentPattern - A pattern to match comment to.
+ * @param {ASTNode} node A SwitchCase node to get comments.
+ * @param {RuleContext} context A rule context which stores comments.
+ * @param {RegExp} fallthroughCommentPattern A pattern to match comment to.
  * @returns {boolean} `true` if the node has a valid fallthrough comment.
  */
 function hasFallthroughComment(node, context, fallthroughCommentPattern) {
     const sourceCode = context.getSourceCode();
-    const comment = lodash.last(sourceCode.getComments(node).leading);
+    const comment = lodash.last(sourceCode.getCommentsBefore(node));
 
     return Boolean(comment && fallthroughCommentPattern.test(comment.value));
 }
 
 /**
  * Checks whether or not a given code path segment is reachable.
- * @param {CodePathSegment} segment - A CodePathSegment to check.
+ * @param {CodePathSegment} segment A CodePathSegment to check.
  * @returns {boolean} `true` if the segment is reachable.
  */
 function isReachable(segment) {
@@ -41,8 +41,8 @@ function isReachable(segment) {
 
 /**
  * Checks whether a node and a token are separated by blank lines
- * @param {ASTNode} node - The node to check
- * @param {Token} token - The token to compare against
+ * @param {ASTNode} node The node to check
+ * @param {Token} token The token to compare against
  * @returns {boolean} `true` if there are blank lines between node and token
  */
 function hasBlankLinesBetween(node, token) {
@@ -55,10 +55,13 @@ function hasBlankLinesBetween(node, token) {
 
 module.exports = {
     meta: {
+        type: "problem",
+
         docs: {
             description: "disallow fallthrough of `case` statements",
             category: "Best Practices",
-            recommended: true
+            recommended: true,
+            url: "https://eslint.org/docs/rules/no-fallthrough"
         },
 
         schema: [
@@ -66,12 +69,17 @@ module.exports = {
                 type: "object",
                 properties: {
                     commentPattern: {
-                        type: "string"
+                        type: "string",
+                        default: ""
                     }
                 },
                 additionalProperties: false
             }
-        ]
+        ],
+        messages: {
+            case: "Expected a 'break' statement before 'case'.",
+            default: "Expected a 'break' statement before 'default'."
+        }
     },
 
     create(context) {
@@ -87,7 +95,7 @@ module.exports = {
         let fallthroughCommentPattern = null;
 
         if (options.commentPattern) {
-            fallthroughCommentPattern = new RegExp(options.commentPattern);
+            fallthroughCommentPattern = new RegExp(options.commentPattern, "u");
         } else {
             fallthroughCommentPattern = DEFAULT_FALLTHROUGH_COMMENT;
         }
@@ -108,8 +116,7 @@ module.exports = {
                  */
                 if (fallthroughCase && !hasFallthroughComment(node, context, fallthroughCommentPattern)) {
                     context.report({
-                        message: "Expected a 'break' statement before '{{type}}'.",
-                        data: { type: node.test ? "case" : "default" },
+                        messageId: node.test ? "case" : "default",
                         node
                     });
                 }

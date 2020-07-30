@@ -1,28 +1,34 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 exports.default = normalizeFlexFlow;
 // flex-flow: <flex-direction> || <flex-wrap>
 
-var flexDirection = ['row', 'row-reverse', 'column', 'column-reverse'];
+const flexDirection = ['row', 'row-reverse', 'column', 'column-reverse'];
 
-var flexWrap = ['nowrap', 'wrap', 'wrap-reverse'];
+const flexWrap = ['nowrap', 'wrap', 'wrap-reverse'];
 
-function normalizeFlexFlow(decl, flexFlow) {
-    var order = {
+function normalizeFlexFlow(flexFlow) {
+    let order = {
         direction: '',
         wrap: ''
     };
-    flexFlow.walk(function (node) {
-        if (~flexDirection.indexOf(node.value)) {
-            order.direction = node.value;
+
+    flexFlow.walk(({ value }) => {
+        if (~flexDirection.indexOf(value.toLowerCase())) {
+            order.direction = value;
             return;
         }
-        if (~flexWrap.indexOf(node.value)) {
-            order.wrap = node.value;
+
+        if (~flexWrap.indexOf(value.toLowerCase())) {
+            order.wrap = value;
+
             return;
         }
     });
-    decl.value = (order.direction + ' ' + order.wrap).trim();
+
+    return `${order.direction} ${order.wrap}`.trim();
 };
 module.exports = exports['default'];

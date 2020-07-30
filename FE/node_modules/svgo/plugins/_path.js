@@ -1,8 +1,16 @@
 /* global a2c */
 'use strict';
 
+var rNumber = String.raw`[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?\s*`,
+    rCommaWsp = String.raw`(?:\s,?\s*|,\s*)`,
+    rNumberCommaWsp = `(${rNumber})` + rCommaWsp,
+    rFlagCommaWsp = `([01])${rCommaWsp}?`,
+    rCoordinatePair = String.raw`(${rNumber})${rCommaWsp}?(${rNumber})`,
+    rArcSeq = (rNumberCommaWsp + '?').repeat(2) + rNumberCommaWsp + rFlagCommaWsp.repeat(2) + rCoordinatePair;
+
 var regPathInstructions = /([MmLlHhVvCcSsQqTtAaZz])\s*/,
-    regPathData = /[-+]?(?:\d*\.\d+|\d+\.?)([eE][-+]?\d+)?/g,
+    regCoordinateSequence = new RegExp(rNumber, 'g'),
+    regArcArgumentSequence = new RegExp(rArcSeq, 'g'),
     regNumericValues = /[-+]?(\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/,
     transform2js = require('./_transforms').transform2js,
     transformsMultiply = require('./_transforms').transformsMultiply,
@@ -53,11 +61,21 @@ exports.path2js = function(path) {
             }
         // data item
         } else {
-            data = data.match(regPathData);
+            /* jshint boss: true */
+            if (instruction == 'A' || instruction == 'a') {
+                var newData = [];
+                for (var args; (args = regArcArgumentSequence.exec(data));) {
+                    for (var i = 1; i < args.length; i++) {
+                        newData.push(args[i]);
+                    }
+                }
+                data = newData;
+            } else {
+                data = data.match(regCoordinateSequence);
+            }
             if (!data) return;
 
             data = data.map(Number);
-
             // Subsequent moveto pairs of coordinates are threated as implicit lineto commands
             // http://www.w3.org/TR/SVG/paths.html#PathDataMovetoCommands
             if (instruction == 'M' || instruction == 'm') {
@@ -97,7 +115,7 @@ var relative2absolute = exports.relative2absolute = function(data) {
         subpathPoint = [0, 0],
         i;
 
-    data = data.map(function(item) {
+    return data.map(function(item) {
 
         var instruction = item.instruction,
             itemData = item.data && item.data.slice();
@@ -160,8 +178,6 @@ var relative2absolute = exports.relative2absolute = function(data) {
             };
 
     });
-
-    return data;
 };
 
 /**
@@ -210,16 +226,22 @@ exports.applyTransforms = function(elem, path, params) {
         if (scale !== 1) {
             var strokeWidth = elem.computedAttr('stroke-width') || defaultStrokeWidth;
 
-            if (elem.hasAttr('stroke-width')) {
-                elem.attrs['stroke-width'].value = elem.attrs['stroke-width'].value.trim()
-                    .replace(regNumericValues, function(num) { return removeLeadingZero(num * scale) });
-            } else {
-                elem.addAttr({
-                    name: 'stroke-width',
-                    prefix: '',
-                    local: 'stroke-width',
-                    value: strokeWidth.replace(regNumericValues, function(num) { return removeLeadingZero(num * scale) })
-                });
+            if (!elem.hasAttr('vector-effect') || elem.attr('vector-effect').value !== 'non-scaling-stroke') {
+                if (elem.hasAttr('stroke-width')) {
+                    elem.attrs['stroke-width'].value = elem.attrs['stroke-width'].value.trim()
+                        .replace(regNumericValues, function(num) {
+                            return removeLeadingZero(num * scale);
+                        });
+                } else {
+                    elem.addAttr({
+                        name: 'stroke-width',
+                        prefix: '',
+                        local: 'stroke-width',
+                        value: strokeWidth.replace(regNumericValues, function(num) {
+                            return removeLeadingZero(num * scale);
+                        })
+                    });
+                }
             }
         }
     } else if (id) { // Stroke and stroke-width can be redefined with <use>
@@ -531,7 +553,11 @@ exports.js2path = function(path, data, params) {
     }
 
     path.attr('d').value = data.reduce(function(pathString, item) {
-        return pathString += item.instruction + (item.data ? cleanupOutData(item.data, params) : '');
+        var strData = '';
+        if (item.data) {
+            strData = cleanupOutData(item.data, params, item.instruction);
+        }
+        return pathString += item.instruction + strData;
     }, '');
 
 };
@@ -754,7 +780,7 @@ function gatherPoints(points, item, index, path) {
             prevCtrlPoint = [data[2] - data[0], data[3] - data[1]]; // Save control point for shorthand
             break;
         case 'T':
-            if (prev.instruction == 'Q' && prev.instruction == 'T') {
+            if (prev.instruction == 'Q' || prev.instruction == 'T') {
                 ctrlPoint = [basePoint[0] + prevCtrlPoint[0], basePoint[1] + prevCtrlPoint[1]];
                 addPoint(subPath, ctrlPoint);
                 prevCtrlPoint = [data[0] - ctrlPoint[0], data[1] - ctrlPoint[1]];
@@ -768,7 +794,7 @@ function gatherPoints(points, item, index, path) {
             prevCtrlPoint = [data[4] - data[2], data[5] - data[3]]; // Save control point for shorthand
             break;
         case 'S':
-            if (prev.instruction == 'C' && prev.instruction == 'S') {
+            if (prev.instruction == 'C' || prev.instruction == 'S') {
                 addPoint(subPath, [basePoint[0] + .5 * prevCtrlPoint[0], basePoint[1] + .5 * prevCtrlPoint[1]]);
                 ctrlPoint = [basePoint[0] + prevCtrlPoint[0], basePoint[1] + prevCtrlPoint[1]];
             }

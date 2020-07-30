@@ -4,7 +4,7 @@
  */
 "use strict";
 
-const astUtils = require("../ast-utils");
+const astUtils = require("./utils/ast-utils");
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -12,10 +12,13 @@ const astUtils = require("../ast-utils");
 
 module.exports = {
     meta: {
+        type: "layout",
+
         docs: {
             description: "enforce consistent spacing before and after commas",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/comma-spacing"
         },
 
         fixable: "whitespace",
@@ -25,15 +28,22 @@ module.exports = {
                 type: "object",
                 properties: {
                     before: {
-                        type: "boolean"
+                        type: "boolean",
+                        default: false
                     },
                     after: {
-                        type: "boolean"
+                        type: "boolean",
+                        default: true
                     }
                 },
                 additionalProperties: false
             }
-        ]
+        ],
+
+        messages: {
+            missing: "A space is required {{loc}} ','.",
+            unexpected: "There should be no space {{loc}} ','."
+        }
     },
 
     create(context) {
@@ -42,8 +52,8 @@ module.exports = {
         const tokensAndComments = sourceCode.tokensAndComments;
 
         const options = {
-            before: context.options[0] ? !!context.options[0].before : false,
-            after: context.options[0] ? !!context.options[0].after : true
+            before: context.options[0] ? context.options[0].before : false,
+            after: context.options[0] ? context.options[0].after : true
         };
 
         //--------------------------------------------------------------------------
@@ -54,29 +64,19 @@ module.exports = {
         const commaTokensToIgnore = [];
 
         /**
-         * Determines if a given token is a comma operator.
-         * @param {ASTNode} token The token to check.
-         * @returns {boolean} True if the token is a comma, false if not.
-         * @private
-         */
-        function isComma(token) {
-            return !!token && (token.type === "Punctuator") && (token.value === ",");
-        }
-
-        /**
          * Reports a spacing error with an appropriate message.
          * @param {ASTNode} node The binary expression node to report.
-         * @param {string} dir Is the error "before" or "after" the comma?
+         * @param {string} loc Is the error "before" or "after" the comma?
          * @param {ASTNode} otherNode The node at the left or right of `node`
          * @returns {void}
          * @private
          */
-        function report(node, dir, otherNode) {
+        function report(node, loc, otherNode) {
             context.report({
                 node,
                 fix(fixer) {
-                    if (options[dir]) {
-                        if (dir === "before") {
+                    if (options[loc]) {
+                        if (loc === "before") {
                             return fixer.insertTextBefore(node, " ");
                         }
                         return fixer.insertTextAfter(node, " ");
@@ -85,7 +85,7 @@ module.exports = {
                     let start, end;
                     const newText = "";
 
-                    if (dir === "before") {
+                    if (loc === "before") {
                         start = otherNode.range[1];
                         end = node.range[0];
                     } else {
@@ -96,18 +96,16 @@ module.exports = {
                     return fixer.replaceTextRange([start, end], newText);
 
                 },
-                message: options[dir]
-                  ? "A space is required {{dir}} ','."
-                  : "There should be no space {{dir}} ','.",
+                messageId: options[loc] ? "missing" : "unexpected",
                 data: {
-                    dir
+                    loc
                 }
             });
         }
 
         /**
          * Validates the spacing around a comma token.
-         * @param {Object} tokens - The tokens to be validated.
+         * @param {Object} tokens The tokens to be validated.
          * @param {Token} tokens.comma The token representing the comma.
          * @param {Token} [tokens.left] The last token before the comma.
          * @param {Token} [tokens.right] The first token after the comma.
@@ -120,6 +118,10 @@ module.exports = {
                     (options.before !== sourceCode.isSpaceBetweenTokens(tokens.left, tokens.comma))
             ) {
                 report(reportItem, "before", tokens.left);
+            }
+
+            if (tokens.right && astUtils.isClosingParenToken(tokens.right)) {
+                return;
             }
 
             if (tokens.right && !options.after && tokens.right.type === "Line") {
@@ -147,7 +149,7 @@ module.exports = {
                 if (element === null) {
                     token = sourceCode.getTokenAfter(previousToken);
 
-                    if (isComma(token)) {
+                    if (astUtils.isCommaToken(token)) {
                         commaTokensToIgnore.push(token);
                     }
                 } else {
@@ -166,7 +168,7 @@ module.exports = {
             "Program:exit"() {
                 tokensAndComments.forEach((token, i) => {
 
-                    if (!isComma(token)) {
+                    if (!astUtils.isCommaToken(token)) {
                         return;
                     }
 
@@ -179,8 +181,8 @@ module.exports = {
 
                     validateCommaItemSpacing({
                         comma: token,
-                        left: isComma(previousToken) || commaTokensToIgnore.indexOf(token) > -1 ? null : previousToken,
-                        right: isComma(nextToken) ? null : nextToken
+                        left: astUtils.isCommaToken(previousToken) || commaTokensToIgnore.indexOf(token) > -1 ? null : previousToken,
+                        right: astUtils.isCommaToken(nextToken) ? null : nextToken
                     }, token);
                 });
             },

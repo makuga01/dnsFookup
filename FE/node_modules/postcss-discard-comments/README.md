@@ -1,4 +1,4 @@
-# [postcss][postcss]-discard-comments [![Build Status](https://travis-ci.org/ben-eb/postcss-discard-comments.svg?branch=master)][ci] [![NPM version](https://badge.fury.io/js/postcss-discard-comments.svg)][npm] [![Dependency Status](https://gemnasium.com/ben-eb/postcss-discard-comments.svg)][deps]
+# [postcss][postcss]-discard-comments
 
 > Discard comments in your CSS files with PostCSS.
 
@@ -101,18 +101,14 @@ See the [PostCSS documentation](https://github.com/postcss/postcss#usage) for
 examples for your environment.
 
 
-## Contributing
+## Contributors
 
-Pull requests are welcome. If you add functionality, then please add unit tests
-to cover it.
+See [CONTRIBUTORS.md](https://github.com/cssnano/cssnano/blob/master/CONTRIBUTORS.md).
 
 
 ## License
 
-MIT © Ben Briggs
+MIT © [Ben Briggs](http://beneb.info)
 
 
-[ci]:      https://travis-ci.org/ben-eb/postcss-discard-comments
-[deps]:    https://gemnasium.com/ben-eb/postcss-discard-comments
-[npm]:     http://badge.fury.io/js/postcss-discard-comments
 [postcss]: https://github.com/postcss/postcss

@@ -1,10 +1,10 @@
 "use strict";
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 exports.default = getValue;
-function getValue(_ref) {
-    var value = _ref.value;
-
+function getValue({ value }) {
     return value;
 }
 module.exports = exports["default"];

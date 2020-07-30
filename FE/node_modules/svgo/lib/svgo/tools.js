@@ -1,5 +1,7 @@
 'use strict';
 
+var FS = require('fs');
+
 /**
  * Encode plain SVG data string into Data URI string.
  *
@@ -8,30 +10,23 @@
  * @return {String} output string
  */
 exports.encodeSVGDatauri = function(str, type) {
-
     var prefix = 'data:image/svg+xml';
-
-    // base64
     if (!type || type === 'base64') {
-
+        // base64
         prefix += ';base64,';
-
-        str = prefix + new Buffer(str).toString('base64');
-
-    // URI encoded
+        if (Buffer.from) {
+            str = prefix + Buffer.from(str).toString('base64');
+        } else {
+            str = prefix + new Buffer(str).toString('base64');
+        }
     } else if (type === 'enc') {
-
+        // URI encoded
         str = prefix + ',' + encodeURIComponent(str);
-
-    // unencoded
     } else if (type === 'unenc') {
-
+        // unencoded
         str = prefix + ',' + str;
-
     }
-
     return str;
-
 };
 
 /**
@@ -49,23 +44,16 @@ exports.decodeSVGDatauri = function(str) {
 
     var data = match[3];
 
-    // base64
     if (match[2]) {
-
+        // base64
         str = new Buffer(data, 'base64').toString('utf8');
-
-    // URI encoded
     } else if (data.charAt(0) === '%') {
-
+        // URI encoded
         str = decodeURIComponent(data);
-
-    // unencoded
     } else if (data.charAt(0) === '<') {
-
+        // unencoded
         str = data;
-
     }
-
     return str;
 };
 
@@ -75,20 +63,33 @@ exports.intersectArrays = function(a, b) {
     });
 };
 
-exports.cleanupOutData = function(data, params) {
-
+/**
+ * Convert a row of numbers to an optimized string view.
+ *
+ * @example
+ * [0, -1, .5, .5] → "0-1 .5.5"
+ *
+ * @param {number[]} data
+ * @param {Object} params
+ * @param {string?} command path data instruction
+ * @return {string}
+ */
+exports.cleanupOutData = function(data, params, command) {
     var str = '',
         delimiter,
         prev;
 
     data.forEach(function(item, i) {
-
         // space delimiter by default
         delimiter = ' ';
 
         // no extra space in front of first number
-        if (i === 0) {
-            delimiter = '';
+        if (i == 0) delimiter = '';
+
+        // no extra space after 'arcto' command flags
+        if (params.noSpaceAfterFlags && (command == 'A' || command == 'a')) {
+            var pos = i % 7;
+            if (pos == 4 || pos == 5) delimiter = '';
         }
 
         // remove floating-point numbers leading zeros
@@ -102,22 +103,18 @@ exports.cleanupOutData = function(data, params) {
         // in front of a floating number if a previous number is floating too
         if (
             params.negativeExtraSpace &&
+            delimiter != '' &&
             (item < 0 ||
                 (String(item).charCodeAt(0) == 46 && prev % 1 !== 0)
             )
         ) {
             delimiter = '';
         }
-
         // save prev item value
         prev = item;
-
         str += delimiter + item;
-
     });
-
     return str;
-
 };
 
 /**
@@ -141,7 +138,18 @@ var removeLeadingZero = exports.removeLeadingZero = function(num) {
     } else if (-1 < num && num < 0 && strNum.charCodeAt(1) == 48) {
         strNum = strNum.charAt(0) + strNum.slice(2);
     }
-
     return strNum;
+};
 
+
+/**
+ * Synchronously check if path is a directory. Tolerant to errors like ENOENT.
+ * @param {string} path
+ */
+exports.checkIsDir = function(path) {
+    try {
+        return FS.lstatSync(path).isDirectory();
+    } catch(e) {
+        return false;
+    }
 };

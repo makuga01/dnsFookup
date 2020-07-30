@@ -1,6 +1,8 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
 var _postcss = require('postcss');
 
@@ -18,9 +20,7 @@ function unique(rule) {
     rule.selector = (0, _alphanumSort2.default)((0, _uniqs2.default)(rule.selectors), { insensitive: true }).join();
 }
 
-exports.default = (0, _postcss.plugin)('postcss-unique-selectors', function () {
-    return function (css) {
-        return css.walkRules(unique);
-    };
+exports.default = (0, _postcss.plugin)('postcss-unique-selectors', () => {
+    return css => css.walkRules(unique);
 });
 module.exports = exports['default'];

@@ -1,26 +1,32 @@
 'use strict';
 
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 
 var _postcss = require('postcss');
 
+var _postcss2 = _interopRequireDefault(_postcss);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+const plugin = 'postcss-discard-empty';
+
 function discardAndReport(css, result) {
     function discardEmpty(node) {
-        var type = node.type;
-        var sub = node.nodes;
-
+        const { type, nodes: sub, params } = node;
 
         if (sub) {
             node.each(discardEmpty);
         }
 
-        if (type === 'decl' && !node.value || type === 'rule' && !node.selector || sub && !sub.length || type === 'atrule' && (!sub && !node.params || !node.params && !sub.length)) {
+        if (type === 'decl' && !node.value || type === 'rule' && !node.selector || sub && !sub.length || type === 'atrule' && (!sub && !params || !params && !sub.length)) {
             node.remove();
 
             result.messages.push({
                 type: 'removal',
-                plugin: 'postcss-discard-empty',
-                node: node
+                plugin,
+                node
             });
         }
     }
@@ -28,9 +34,5 @@ function discardAndReport(css, result) {
     css.each(discardEmpty);
 }
 
-exports.default = (0, _postcss.plugin)('postcss-discard-empty', function () {
-    return function (css, result) {
-        return discardAndReport(css, result);
-    };
-});
+exports.default = _postcss2.default.plugin(plugin, () => discardAndReport);
 module.exports = exports['default'];

@@ -90,12 +90,9 @@ var {{=$valid}};
     $it.errSchemaPath = $errSchemaPath;
   }}
   {{# def.validateItems: 0 }}
-  {{# def.ifResultValid }}
 {{?}}
 
 {{? $breakOnError }}
   {{= $closingBraces }}
   if ({{=$errs}} == errors) {
 {{?}}
-
-{{# def.cleanUp }}

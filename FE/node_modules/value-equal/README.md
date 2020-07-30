@@ -2,7 +2,6 @@
 
 [build-badge]: https://img.shields.io/travis/mjackson/value-equal/master.svg?style=flat-square
 [build]: https://travis-ci.org/mjackson/value-equal
-
 [npm-badge]: https://img.shields.io/npm/v/value-equal.svg?style=flat-square
 [npm]: https://www.npmjs.org/package/value-equal
 
@@ -24,16 +23,16 @@ Then with a module bundler like [webpack](https://webpack.github.io/), use as yo
 
 ```js
 // using ES6 modules
-import valueEqual from 'value-equal'
+import valueEqual from 'value-equal';
 
 // using CommonJS modules
-var valueEqual = require('value-equal')
+var valueEqual = require('value-equal');
 ```
 
 The UMD build is also available on [unpkg](https://unpkg.com):
 
 ```html
-<script src="https://unpkg.com/value-equal/umd/value-equal.min.js"></script>
+<script src="https://unpkg.com/value-equal"></script>
 ```
 
 You can find the library on `window.valueEqual`.
@@ -41,15 +40,15 @@ You can find the library on `window.valueEqual`.
 ## Usage
 
 ```js
-valueEqual(1, 1)                           // true
-valueEqual('asdf', 'asdf')                 // true
-valueEqual('asdf', new String('asdf'))     // true
-valueEqual(true, true)                     // true
-valueEqual(true, false)                    // false
-valueEqual({ a: 'a' }, { a: 'a' })         // true
-valueEqual({ a: 'a' }, { a: 'b' })         // false
-valueEqual([ 1, 2, 3 ], [ 1, 2, 3 ])       // true
-valueEqual([ 1, 2, 3 ], [ 2, 3, 4 ])       // false
+valueEqual(1, 1); // true
+valueEqual('asdf', 'asdf'); // true
+valueEqual('asdf', new String('asdf')); // true
+valueEqual(true, true); // true
+valueEqual(true, false); // false
+valueEqual({ a: 'a' }, { a: 'a' }); // true
+valueEqual({ a: 'a' }, { a: 'b' }); // false
+valueEqual([1, 2, 3], [1, 2, 3]); // true
+valueEqual([1, 2, 3], [2, 3, 4]); // false
 ```
 
 That's it. Enjoy!
