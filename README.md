@@ -5,6 +5,7 @@
  - shitty react app to make it more comfy
 
  [Changelog](./CHANGELOG.md)
+ 
  [API documentation](./API.md)
 
 ## What does it do?
@@ -17,6 +18,13 @@ You can specify what ips/domains should the created subdomain resolve to and how
 Then you can see where it was requested from, what did it resolve to,... in logs
 ![create new dnsbin](.images/logs.png)
 
+
+
+### Video of tool in action
+
+[![Watch the video](https://img.youtube.com/vi/jP_bFUdDVRQ/maxresdefault.jpg)](https://youtu.be/jP_bFUdDVRQ)
+
+Source of the vulnerable application is from https://github.com/makuga01/dnsFookup/tree/master/vulnerableApp
 
 ## How to run it
 
