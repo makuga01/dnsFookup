@@ -271,8 +271,8 @@ if __name__ == '__main__':
     print("DNS server warming up!")
 
     servers = [
-        SocketServer.ThreadingUDPServer(('', port), UDPRequestHandler),
-        SocketServer.ThreadingTCPServer(('', port), TCPRequestHandler),
+        SocketServer.ThreadingUDPServer((ip, port), UDPRequestHandler),
+        SocketServer.ThreadingTCPServer((ip, port), TCPRequestHandler),
     ]
     for s in servers:
         thread = threading.Thread(target=s.serve_forever)  # that thread will start one more thread for each request

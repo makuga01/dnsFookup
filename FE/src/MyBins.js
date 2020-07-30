@@ -276,7 +276,7 @@ class MyBins extends Component {
                 </Segment>
                 <Button.Group vertical>
                 <CopyToClipboard
-                  text={this.state.selected+process.env.REACT_APP_REBIND_DOMAIN}
+                  text={this.state.selected+"."+process.env.REACT_APP_REBIND_DOMAIN}
                   onCopy={() => this.setState({copied: true})}
                 >
                   <Button
