@@ -2,7 +2,7 @@ validators
 redis
 jsonschema
 uuid
-flask_jwt_extended
+flask_jwt_extended==3.25.1
 flask_restful
 datetime
 passlib
@@ -10,3 +10,5 @@ sqlalchemy
 flask
 psycopg2
 flask_cors
+dnslib
+Flask-SQLAlchemy

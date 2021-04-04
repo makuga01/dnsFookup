@@ -35,6 +35,10 @@ You also should not forget to change all passwords and keys inside the config
 
 
 ```
+# First edit config.yaml as you please
+# Don't forget to change the JWT secret!
+vim config.yaml
+
 #Set up postgres and redis
 sudo docker-compose up
 
