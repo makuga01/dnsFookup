@@ -7,7 +7,7 @@ sql:
         deprec_warn: false
 
 jwt:
-        secret_key: 'U(RH*3y328u$#ibf*YGRIBFJ)IHF(**^#@&!)'
+        secret_key: 'changeme'
         blacklist_enabled: true
         blacklist_token_checks: ['access']
         token_expires: 21600 # 6 hours

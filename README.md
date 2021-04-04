@@ -35,8 +35,16 @@ You also should not forget to change all passwords and keys inside the config
 
 
 ```
+# First edit config.yaml as you please
+# Don't forget to change the JWT secret!
+vim config.yaml
+
 #Set up postgres and redis
 sudo docker-compose up
+
+# Install python
+apt install docker-compose python3-pip
+sudo apt-get install libpq-dev python-dev
 
 #in ./BE
 pip3 install -r requirements.txt
@@ -47,6 +55,10 @@ python3 dns.py # to start the dns server
 FLASK_APP=app.py
 FLASK_ENV=development
 flask run
+
+# Install npm
+curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -       
+apt -y install nodejs make gcc g++
 
 # then in ./FE
 npm install
