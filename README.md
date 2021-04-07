@@ -39,12 +39,12 @@ You also should not forget to change all passwords and keys inside the config
 # Don't forget to change the JWT secret!
 vim config.yaml
 
-#Set up postgres and redis
-sudo docker-compose up
-
-# Install python
+# Install python & docker-compose
 apt install docker-compose python3-pip
 sudo apt-get install libpq-dev python-dev
+
+#Set up postgres and redis
+sudo docker-compose up
 
 #in ./BE
 pip3 install -r requirements.txt
@@ -66,9 +66,8 @@ npm start
 ```
 
 
-# PLEASE
-
 *If you have a bit of free time, please contribute, it means a lot to me :D*
 
-# Want to see some feature in next update?
-## Let me know [on keybase](https://keybase.io/gel0)
+#### Want to see some feature in next update?
+
+Let me know [on keybase](https://keybase.io/gel0)
