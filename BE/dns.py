@@ -139,8 +139,14 @@ def buildResponse(d, ADDR, PORT):
 
         fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = rtype, rclass = 1, rdata = A(FAILURE_IP))) if USE_FAILURE else 0
         return fail_reply.pack()
-    subs = domain_not_splited.removesuffix(host_domain).strip(". ")
-    subs_splited = subs.split(".")
+    """
+    e.g. host_domain is a.b.c.com and domain_not_splited(received dns query qname) is d.org.uuid.a.b.c.com
+    first we have d.org.uuid after removesuffix method
+    then we strip "." and " "
+    then we have ["d","org","uuid"]
+    so in this way we can reach uuid
+    """
+    subs_splited = domain_not_splited.removesuffix(host_domain).strip(". ").split(".")
     uuid = subs_splited[-1]
 
     """
