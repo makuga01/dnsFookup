@@ -1,3 +1,4 @@
+dnslib
 validators
 redis
 jsonschema
@@ -7,8 +8,10 @@ flask_restful
 datetime
 passlib
 sqlalchemy
-flask
-psycopg2
 flask_cors
 dnslib
 Flask-SQLAlchemy
+psycopg2-binary
+redis
+flask==1.1.4
+MarkupSafe==2.0.1
