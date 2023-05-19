@@ -117,6 +117,7 @@ def buildResponse(d, ADDR, PORT):
     data = DNSRecord.parse(d)
     qtype = QTYPE[data.q.qtype]
     domain = str(data.q.qname).split('.')
+    domain_not_splited = str(data.q.qname).strip(". ")
     rtype = 1 # A
     reply = DNSRecord(DNSHeader(id=data.header.id, qr=1, aa=1, ra=1), q=data.q)
     fail_reply = reply if USE_FAILURE else gen_nxdomain_reply(data)
@@ -128,7 +129,7 @@ def buildResponse(d, ADDR, PORT):
     Request format: dig some.random.subdomains.{uuid}.gel0.space
     """
 
-    if '.'.join(domain[-3:-1]) != host_domain and use_fail_ns:
+    if not domain_not_splited.endswith(host_domain) and use_fail_ns:
         print(f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain[-3:-1])} is not my thing NS => {fail_ns}')
         fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = 2, rclass = 1, rdata = NS(fail_ns)))
         return fail_reply.pack()
@@ -138,8 +139,9 @@ def buildResponse(d, ADDR, PORT):
 
         fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = rtype, rclass = 1, rdata = A(FAILURE_IP))) if USE_FAILURE else 0
         return fail_reply.pack()
-    subs = domain[:-3]
-    uuid = subs[-1]
+    subs = domain_not_splited.removesuffix(host_domain).strip(". ")
+    subs_splited = subs.split(".")
+    uuid = subs_splited[-1]
 
     """
     Check for uuid in redis
