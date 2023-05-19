@@ -21,7 +21,7 @@ ip = config['dns']['ip']
 
 USE_FAILURE = config['dns']['use_failure_ip']
 FAILURE_IP = config['dns']['failure_ip']
-host_domain = config['dns']['domain']
+host_domain = config['dns']['domain'].strip(". ")
 use_fail_ns = config['dns']['use_fail_ns']
 fail_ns = config['dns']['fail_ns']
 
