@@ -1,5 +1,4 @@
 import sys
-import time
 import threading
 import traceback
 import socketserver as SocketServer
@@ -26,12 +25,12 @@ use_fail_ns = config['dns']['use_fail_ns']
 fail_ns = config['dns']['fail_ns']
 
 redis_config = {
-  'host': config['redis']['host'],
-  'port': config['redis']['port'],
-  'password': config['redis']['password']
+    'host': config['redis']['host'],
+    'port': config['redis']['port'],
+    'password': config['redis']['password']
 }
-REDIS_EXP = config['redis']['expiration'] #seconds
-redis = StrictRedis(socket_connect_timeout = config['redis']['timeout'],**redis_config)
+REDIS_EXP = config['redis']['expiration']  # seconds
+redis = StrictRedis(socket_connect_timeout=config['redis']['timeout'], **redis_config)
 
 """
 *** CONFIG ***
@@ -83,12 +82,14 @@ Lambda functions used for easier manipulation with redis
 setJson = lambda uid, data: redis.setex(uid, REDIS_EXP, json.dumps(data))
 getJson = lambda uid: json.loads(redis.get(uid))
 
-def gen_nxdomain_reply(request):
-        # Stolen from https://github.com/major1201/dns-router/blob/master/dns-router.py
 
-        reply = request.reply()
-        reply.header.rcode = getattr(RCODE, 'NXDOMAIN')
-        return reply
+def gen_nxdomain_reply(request):
+    # Stolen from https://github.com/major1201/dns-router/blob/master/dns-router.py
+
+    reply = request.reply()
+    reply.header.rcode = getattr(RCODE, 'NXDOMAIN')
+    return reply
+
 
 def getResType(type):
     """
@@ -102,11 +103,25 @@ def getResType(type):
         except: pass
     """
     types = {
-        "A": (1,A),
+        "A": (1, A),
         "AAAA": (28, AAAA),
         "CNAME": (5, CNAME)
     }
-    return(types[type])
+    return (types[type])
+
+
+"""
+e.g. host_domain is a.b.c.com and domain_not_splited(received dns query qname) is d.org.uuid.a.b.c.com
+first we have d.org.uuid after removesuffix method
+then we strip "." and " "
+then we have ["d","org","uuid"]
+so in this way we can reach uuid
+"""
+
+
+def GetUuid(Domain):
+    return Domain.removesuffix(host_domain).strip(". ").split(".")[-1]
+
 
 def buildResponse(d, ADDR, PORT):
     """
@@ -117,7 +132,8 @@ def buildResponse(d, ADDR, PORT):
     data = DNSRecord.parse(d)
     qtype = QTYPE[data.q.qtype]
     domain = str(data.q.qname).split('.')
-    rtype = 1 # A
+    domain_not_splited = str(data.q.qname).strip(". ")
+    rtype = 1  # A
     reply = DNSRecord(DNSHeader(id=data.header.id, qr=1, aa=1, ra=1), q=data.q)
     fail_reply = reply if USE_FAILURE else gen_nxdomain_reply(data)
     """
@@ -128,18 +144,26 @@ def buildResponse(d, ADDR, PORT):
     Request format: dig some.random.subdomains.{uuid}.gel0.space
     """
 
-    if '.'.join(domain[-3:-1]) != host_domain and use_fail_ns:
+    if not domain_not_splited.endswith(host_domain) and use_fail_ns:
         print(f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain[-3:-1])} is not my thing NS => {fail_ns}')
-        fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = 2, rclass = 1, rdata = NS(fail_ns)))
+        fail_reply.add_answer(RR(rname='.'.join(domain), rtype=2, rclass=1, rdata=NS(fail_ns)))
         return fail_reply.pack()
 
     if len(domain) < 4:
-        print(f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain[:-1])} => No subdomain, no fun => {FAILURE_IP if USE_FAILURE else "NXDOMAIN"}')
-
-        fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = rtype, rclass = 1, rdata = A(FAILURE_IP))) if USE_FAILURE else 0
+        print(
+            f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain[:-1])} => No subdomain, no fun => {FAILURE_IP if USE_FAILURE else "NXDOMAIN"}')
+        fail_reply.add_answer(
+            RR(rname='.'.join(domain), rtype=rtype, rclass=1, rdata=A(FAILURE_IP))) if USE_FAILURE else 0
         return fail_reply.pack()
-    subs = domain[:-3]
-    uuid = subs[-1]
+
+    uuid = GetUuid(domain_not_splited)
+    # this can help to performance as we don't need to request for invalid uuid to redis
+    if len(uuid) != 32:
+        print(
+            f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain[:-1])} => No UUID, no fun => {FAILURE_IP if USE_FAILURE else "NXDOMAIN"}')
+        fail_reply.add_answer(
+            RR(rname='.'.join(domain), rtype=rtype, rclass=1, rdata=A(FAILURE_IP))) if USE_FAILURE else 0
+        return fail_reply.pack()
 
     """
     Check for uuid in redis
@@ -153,8 +177,10 @@ def buildResponse(d, ADDR, PORT):
             props = DnsModel.get_props(uuid)["props"]
             setJson(uuid, json.loads(props))
         except:
-            print(f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain)[:-1]} (doesn\'t exist) => {FAILURE_IP if USE_FAILURE else "NXDOMAIN"}')
-            fail_reply.add_answer(RR(rname = '.'.join(domain), rtype = rtype, rclass = 1, rdata = A(FAILURE_IP))) if USE_FAILURE else 0
+            print(
+                f'{str(datetime.now())} - {ADDR}:{PORT} {".".join(domain)[:-1]} (doesn\'t exist) => {FAILURE_IP if USE_FAILURE else "NXDOMAIN"}')
+            fail_reply.add_answer(
+                RR(rname='.'.join(domain), rtype=rtype, rclass=1, rdata=A(FAILURE_IP))) if USE_FAILURE else 0
             return fail_reply.pack()
 
     """
@@ -218,8 +244,9 @@ def buildResponse(d, ADDR, PORT):
     new_log.save_to_db()
 
     print(resolve_to)
-    reply.add_answer(RR(rname = '.'.join(domain), rtype = rtype, rclass = 1, rdata = rfunc(resolve_to)))
+    reply.add_answer(RR(rname='.'.join(domain), rtype=rtype, rclass=1, rdata=rfunc(resolve_to)))
     return reply.pack()
+
 
 # Stolen:
 # https://gist.github.com/andreif/6069838
